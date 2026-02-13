@@ -169,7 +169,7 @@ pokemon-card-valuation/
 
 ```bash
 ## Clone repository
-git clone https://github.com/YOUR_USERNAME/pokemon-card-valuation.git
+git clone https://github.com/olamideokunnugaDS/pokemon-card-valuation.git
 cd pokemon-card-valuation
 
 ## Create virtual environment
