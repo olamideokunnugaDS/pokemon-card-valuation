@@ -15,7 +15,7 @@ A production-grade multimodal machine learning system that integrates visual con
 
 ```bash
 ┌─────────────────────────────────────────────────────────────┐
-│                     INPUT LAYER                              │
+│                     INPUT LAYER                             │
 │  ┌──────────────────┐         ┌──────────────────┐          │
 │  │  Card Image      │         │  Market Data     │          │
 │  │  (High-Res)      │         │  (Time-Series)   │          │
