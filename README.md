@@ -326,7 +326,7 @@ Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for gu
 **ISRAEL OKUNNUGA**  
 Email: olamideokunnuga@gmail.com  
 GitHub: [@olamideokunnugaDS](https://github.com/olamideokunnugaDS)  
-LinkedIn: [Israel Okunnuga](https://linkedin.com/in/yourprofile)
+LinkedIn: [Israel Okunnuga](https://www.linkedin.com/in/israelokunnuga/)
 
 
 
