@@ -1,0 +1,282 @@
+# Fusion Module Configuration
+# Multimodal integration of visual condition and market state embeddings
+
+# Input Embeddings
+inputs:
+  vision_embedding_dim: 256      # From vision module (C_visual)
+  market_embedding_dim: 64       # From market module (T_dynamic)
+  
+  # Embedding sources
+  vision_embedding_path: "data/embeddings/vision_embeddings.pkl"
+  market_embedding_path: "data/embeddings/market_embeddings.pkl"
+
+# Fusion Architecture
+fusion:
+  fusion_strategy: "late"  # Options: early, late, hybrid
+  
+  # Early fusion (concatenation before processing)
+  early:
+    concatenate_then_process: true
+    shared_layers: [512, 256, 128]
+  
+  # Late fusion (process separately, then combine)
+  late:
+    # Vision branch
+    vision_branch:
+      hidden_layers: [128, 64]
+      dropout: 0.3
+      activation: "relu"
+    
+    # Market branch
+    market_branch:
+      hidden_layers: [32]
+      dropout: 0.2
+      activation: "relu"
+    
+    # Fusion layer
+    fusion_layer:
+      method: "concatenate"  # Options: concatenate, attention, gated
+      fusion_dim: 96  # Combined dimension after fusion
+      
+      # Attention mechanism (if method=attention)
+      attention:
+        num_heads: 4
+        key_dim: 32
+      
+      # Gated fusion (if method=gated)
+      gated:
+        gate_activation: "sigmoid"
+  
+  # Hybrid fusion (combine early and late)
+  hybrid:
+    early_weight: 0.3
+    late_weight: 0.7
+
+# Valuation Head
+valuation_head:
+  # Predict both mean and variance (probabilistic output)
+  output_type: "probabilistic"  # Options: point, probabilistic
+  
+  # Network architecture
+  hidden_layers: [64, 32, 16]
+  dropout: 0.25
+  activation: "relu"
+  
+  # Probabilistic output
+  probabilistic:
+    predict_mean: true
+    predict_variance: true
+    variance_activation: "softplus"  # Ensure positive variance
+    min_variance: 0.01  # Floor for numerical stability
+  
+  # Output scaling
+  output_scaling:
+    enabled: true
+    method: "log_transform"  # Options: log_transform, standardize, minmax
+    inverse_transform_at_inference: true
+
+# Loss Function
+loss:
+  type: "gaussian_nll"  # Negative log-likelihood for probabilistic output
+  # Options: mse, huber, gaussian_nll, quantile
+  
+  # Gaussian NLL parameters
+  gaussian_nll:
+    reduction: "mean"
+    
+  # Alternative losses
+  huber:
+    delta: 1.0
+  
+  quantile:
+    quantiles: [0.1, 0.5, 0.9]
+  
+  # Multi-task loss (if predicting other outputs)
+  multi_task:
+    enabled: false
+    weights:
+      price: 0.8
+      grade_estimate: 0.2
+
+# Training Configuration
+training:
+  batch_size: 64
+  num_epochs: 100
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  optimizer: "adam"  # Options: adam, adamw, sgd
+  
+  # Learning rate schedule
+  scheduler:
+    type: "reduce_on_plateau"  # Options: step, cosine, reduce_on_plateau
+    factor: 0.5
+    patience: 10
+    min_lr: 0.00001
+  
+  # Gradient clipping
+  gradient_clipping:
+    enabled: true
+    max_norm: 1.0
+  
+  # Early stopping
+  early_stopping:
+    patience: 20
+    min_delta: 0.001
+    monitor: "val_loss"
+    mode: "min"
+
+# Data Configuration
+data:
+  # Train/validation/test split
+  splits:
+    train: 0.7
+    validation: 0.15
+    test: 0.15
+  
+  # Temporal split (if applicable)
+  temporal_split:
+    enabled: true
+    split_date: null  # Auto-determined based on ratios
+  
+  # Data augmentation (dropout as regularization)
+  augmentation:
+    embedding_dropout: 0.1  # Dropout on embeddings
+    noise_injection: 0.01   # Gaussian noise std
+
+# Uncertainty Quantification
+uncertainty:
+  # Calibration
+  calibration:
+    enabled: true
+    method: "isotonic"  # Options: isotonic, platt, temperature_scaling
+    calibration_data: "validation"
+  
+  # Confidence intervals
+  confidence_intervals:
+    enabled: true
+    levels: [0.68, 0.95]  # 1σ and 2σ
+    method: "gaussian"    # Options: gaussian, bootstrap, quantile
+  
+  # Uncertainty decomposition
+  decompose_uncertainty:
+    enabled: true
+    aleatoric: true   # Data uncertainty
+    epistemic: true   # Model uncertainty
+
+# Feature Attribution
+interpretability:
+  # SHAP values for feature importance
+  shap_analysis:
+    enabled: true
+    background_samples: 100
+    explain_samples: 50
+  
+  # Attention weights (if using attention)
+  attention_analysis:
+    enabled: true
+    save_attention_maps: true
+  
+  # Ablation at inference
+  ablation_analysis:
+    vision_only: true
+    market_only: true
+
+# Ablation Studies
+ablation:
+  experiments:
+    - name: "vision_only"
+      disable_market: true
+    
+    - name: "market_only"
+      disable_vision: true
+    
+    - name: "equal_weights"
+      force_equal_weights: true
+    
+    - name: "no_uncertainty"
+      disable_uncertainty: true
+
+# Validation Strategy
+validation:
+  # Metrics
+  metrics:
+    - "mae"
+    - "rmse"
+    - "mape"
+    - "r2_score"
+    - "median_absolute_error"
+  
+  # Probabilistic metrics
+  probabilistic_metrics:
+    - "nll"               # Negative log-likelihood
+    - "calibration_error" # Expected calibration error
+    - "sharpness"         # Average prediction interval width
+    - "coverage"          # Actual coverage of intervals
+  
+  # Per-grade evaluation
+  evaluate_by_grade: true
+  
+  # Regime-specific evaluation
+  evaluate_by_regime: true
+  
+  # Out-of-sample testing
+  oos_periods: 3
+
+# Reproducibility
+seed: 42
+deterministic: true
+benchmark: false
+
+# Hardware
+device: "cuda"  # Options: cuda, cpu, mps
+num_workers: 4
+pin_memory: true
+
+# Logging
+logging:
+  experiment_name: "fusion_network_v1"
+  use_wandb: true
+  wandb_project: "pokemon-card-valuation"
+  log_interval: 10
+  save_best_only: true
+  checkpoint_dir: "models/fusion/checkpoints"
+  
+  # What to log
+  log_embeddings: true
+  log_gradients: false
+  log_predictions: true
+  log_attention: true
+
+# Inference
+inference:
+  # Batch prediction
+  batch_size: 128
+  
+  # Uncertainty threshold
+  uncertainty_threshold:
+    flag_high_uncertainty: true
+    threshold_std: 0.3  # Flag if std > 30% of mean
+  
+  # Output format
+  output_format:
+    include_confidence_intervals: true
+    include_feature_contributions: true
+    include_attention_weights: true
+    format: "json"  # Options: json, csv, pkl
+
+# Production Settings
+production:
+  # Model serving
+  model_path: "models/fusion/best_model.pth"
+  
+  # Performance optimization
+  optimize_inference:
+    quantization: false
+    half_precision: false
+    torchscript: false
+  
+  # Monitoring
+  monitoring:
+    log_predictions: true
+    detect_drift: true
+    drift_threshold: 0.1

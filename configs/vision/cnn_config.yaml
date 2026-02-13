@@ -1,0 +1,112 @@
+# Vision Module Configuration
+# CNN-based intrinsic condition encoder
+
+# Model Architecture
+model:
+  backbone: "resnet50"  # Options: resnet50, efficientnet_b0, efficientnet_b3
+  pretrained: true
+  freeze_early_layers: true
+  freeze_until_layer: "layer3"  # Freeze up to this layer
+  
+  # Custom head for interpretable features
+  embedding_dim: 256  # Size of condition embedding C_visual
+  dropout_rate: 0.3
+  
+  # Multi-task outputs (interpretable sub-scores)
+  outputs:
+    centering_score: true    # Border centering analysis
+    edge_score: true         # Edge wear detection
+    corner_score: true       # Corner quality
+    surface_score: true      # Surface condition
+    overall_embedding: true  # Unified representation
+
+# Training Configuration
+training:
+  batch_size: 32
+  num_epochs: 50
+  learning_rate: 0.0001
+  weight_decay: 0.0005
+  optimizer: "adam"  # Options: adam, adamw, sgd
+  scheduler: "cosine"  # Options: cosine, step, plateau
+  
+  # Early stopping
+  early_stopping:
+    patience: 10
+    min_delta: 0.001
+    monitor: "val_loss"
+  
+  # Loss function
+  loss:
+    type: "mse"  # Options: mse, huber, combined
+    weights:
+      centering: 0.25
+      edge: 0.25
+      corner: 0.25
+      surface: 0.25
+
+# Data Configuration
+data:
+  image_size: [224, 224]
+  normalization:
+    mean: [0.485, 0.456, 0.406]  # ImageNet stats
+    std: [0.229, 0.224, 0.225]
+  
+  # Data augmentation
+  augmentation:
+    train:
+      random_rotation: 5
+      random_brightness: 0.2
+      random_contrast: 0.2
+      horizontal_flip: false  # Cards have orientation
+      gaussian_blur: 0.1
+    
+    validation:
+      enabled: false  # No augmentation for validation
+
+  # Data splits
+  splits:
+    train: 0.7
+    validation: 0.15
+    test: 0.15
+  
+  # Class balancing
+  balance_grades: true  # Balance PSA 8, 9, 10
+
+# Reproducibility
+seed: 42
+deterministic: true
+benchmark: false  # Set true for speed if no reproducibility needed
+
+# Hardware
+device: "cuda"  # Options: cuda, cpu, mps (M1/M2 Mac)
+num_workers: 4
+pin_memory: true
+
+# Logging
+logging:
+  experiment_name: "vision_module_v1"
+  use_wandb: true
+  wandb_project: "pokemon-card-valuation"
+  log_interval: 10  # Log every N batches
+  save_best_only: true
+  checkpoint_dir: "models/vision/checkpoints"
+
+# Interpretability
+interpretability:
+  generate_gradcam: true
+  generate_saliency: true
+  gradcam_target_layer: "layer4"
+  save_visualizations: true
+  visualization_samples: 20  # Number of samples to visualize
+
+# Validation
+validation:
+  metrics:
+    - "mse"
+    - "mae"
+    - "correlation"
+    - "r2_score"
+  
+  # Compare against actual PSA grades
+  grade_correlation_analysis: true
+  subscore_alignment_check: true

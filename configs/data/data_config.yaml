@@ -1,0 +1,280 @@
+# Data Pipeline Configuration
+# Data collection, preprocessing, and validation settings
+
+# Data Sources
+sources:
+  # eBay sold listings
+  ebay:
+    enabled: true
+    search_terms:
+      - "Pokemon PSA 10 Charizard"
+      - "Pokemon PSA 9 Pikachu"
+      - "Pokemon PSA 10 Umbreon"
+    
+    filters:
+      condition: "New"
+      sold_items_only: true
+      date_range_days: 365
+    
+    rate_limit:
+      requests_per_minute: 30
+      sleep_between_requests: 2
+  
+  # PSA Population Report
+  psa:
+    enabled: true
+    base_url: "https://www.psacard.com/pop"
+    target_grades: [8, 9, 10]
+    
+  # Price tracking sites
+  price_trackers:
+    - "pricecharting.com"
+    - "pwccmarketplace.com"
+
+# Data Filters
+filters:
+  # Focus on high-quality cards
+  grades:
+    min_grade: 8
+    max_grade: 10
+    prefer_grades: [10, 9]
+  
+  # Card selection
+  sets:
+    focus_sets:
+      - "Base Set"
+      - "Jungle"
+      - "Fossil"
+      - "Team Rocket"
+    
+    # Or specify by era
+    era: "vintage"  # Options: vintage, modern, all
+  
+  # Quality thresholds
+  quality:
+    min_image_resolution: [800, 1200]
+    require_clear_images: true
+    exclude_damaged_slabs: true
+    
+  # Market activity
+  activity:
+    min_sales_volume: 10  # Minimum sales in period
+    min_transaction_frequency: "weekly"
+    liquidity_threshold: "high"  # high, medium, low
+
+# Target Cards (Priority list)
+priority_cards:
+  high_priority:
+    - card: "Charizard"
+      set: "Base Set"
+      number: "4"
+      min_samples: 200
+    
+    - card: "Pikachu"
+      set: "Base Set"
+      number: "58"
+      min_samples: 150
+    
+    - card: "Umbreon"
+      set: "Neo Discovery"
+      number: "13"
+      min_samples: 100
+
+# Data Collection Schedule
+collection:
+  # Initial bulk collection
+  initial_collection:
+    enabled: true
+    target_samples: 1000
+    parallel_workers: 5
+  
+  # Incremental updates
+  incremental:
+    enabled: true
+    frequency: "daily"
+    max_new_samples: 50
+
+# Image Processing
+image_processing:
+  # Preprocessing
+  preprocessing:
+    resize: [224, 224]
+    normalize: true
+    convert_to_rgb: true
+  
+  # Quality checks
+  quality_checks:
+    check_blurriness: true
+    blur_threshold: 100
+    check_brightness: true
+    brightness_range: [50, 200]
+    check_contrast: true
+  
+  # Storage
+  storage:
+    format: "jpg"
+    quality: 95
+    directory: "data/raw/images"
+
+# Metadata Schema
+metadata_schema:
+  required_fields:
+    - "card_name"
+    - "set_name"
+    - "card_number"
+    - "grade"
+    - "price"
+    - "sale_date"
+    - "image_path"
+  
+  optional_fields:
+    - "is_first_edition"
+    - "is_shadowless"
+    - "population_count"
+    - "certification_number"
+    - "grading_service"
+  
+  # Data types
+  dtypes:
+    price: "float64"
+    grade: "int64"
+    sale_date: "datetime64"
+    population_count: "int64"
+
+# Data Validation
+validation:
+  # Price sanity checks
+  price_validation:
+    min_price: 1.0
+    max_price: 100000.0
+    detect_outliers: true
+    outlier_method: "iqr"  # Options: iqr, zscore
+    outlier_threshold: 3.0
+  
+  # Date validation
+  date_validation:
+    earliest_date: "2020-01-01"
+    latest_date: "2025-12-31"
+    check_chronological: true
+  
+  # Completeness checks
+  completeness:
+    max_missing_percentage: 0.1  # 10%
+    required_field_coverage: 1.0  # 100%
+  
+  # Consistency checks
+  consistency:
+    check_duplicates: true
+    duplicate_tolerance: 0.01  # Allow 1% duplicates
+    cross_validate_sources: true
+
+# Data Cleaning
+cleaning:
+  # Handle missing values
+  missing_values:
+    strategy: "drop"  # Options: drop, impute, flag
+    imputation_method: "median"  # For numeric fields
+  
+  # Outlier handling
+  outliers:
+    strategy: "cap"  # Options: drop, cap, flag
+    cap_method: "percentile"  # Cap at 1st/99th percentile
+  
+  # Deduplication
+  deduplication:
+    enabled: true
+    key_fields: ["card_name", "grade", "sale_date", "certification_number"]
+    keep: "first"
+
+# Data Augmentation (for images)
+augmentation:
+  enabled: true
+  techniques:
+    - "rotation"
+    - "brightness"
+    - "contrast"
+    - "gaussian_noise"
+  
+  # Don't augment validation/test
+  apply_to_splits: ["train"]
+  
+  augmentation_factor: 2  # Generate 2x data
+
+# Storage Configuration
+storage:
+  # Raw data
+  raw_data_dir: "data/raw"
+  
+  # Processed data
+  processed_data_dir: "data/processed"
+  
+  # Format
+  format: "parquet"  # Options: parquet, csv, pkl
+  compression: "snappy"
+  
+  # Versioning
+  versioning:
+    enabled: true
+    version_format: "v{date}_{hash}"
+  
+  # Backup
+  backup:
+    enabled: true
+    backup_dir: "data/backups"
+    retention_days: 30
+
+# Data Splits
+splits:
+  # Stratified splits
+  stratify_by: "grade"  # Ensure balanced grades
+  
+  # Temporal awareness
+  temporal_split:
+    enabled: true
+    split_by_date: true
+    train_cutoff: "2024-06-30"
+    validation_cutoff: "2024-09-30"
+  
+  # Ratios
+  ratios:
+    train: 0.7
+    validation: 0.15
+    test: 0.15
+  
+  # Ensure minimum samples per split
+  min_samples_per_split:
+    train: 500
+    validation: 100
+    test: 100
+
+# Export Configuration
+export:
+  # What to export
+  export_items:
+    - "processed_data"
+    - "metadata"
+    - "data_quality_report"
+    - "statistics_summary"
+  
+  # Export formats
+  formats:
+    data: "parquet"
+    metadata: "json"
+    reports: "html"
+  
+  # Paths
+  export_dir: "data/processed/exports"
+
+# Logging
+logging:
+  log_level: "INFO"
+  log_file: "logs/data_pipeline.log"
+  log_format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # What to log
+  log_collection_progress: true
+  log_validation_results: true
+  log_cleaning_operations: true
+
+# Reproducibility
+seed: 42

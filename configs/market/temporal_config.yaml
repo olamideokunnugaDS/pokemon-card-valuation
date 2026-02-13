@@ -1,0 +1,180 @@
+# Market Module Configuration
+# Time-aware market state encoder (Hybrid Temporal Regressor)
+
+# Model Architecture
+model:
+  type: "xgboost"  # Options: xgboost, lightgbm, catboost, random_forest
+  
+  # XGBoost parameters
+  xgboost:
+    n_estimators: 500
+    max_depth: 6
+    learning_rate: 0.05
+    subsample: 0.8
+    colsample_bytree: 0.8
+    min_child_weight: 3
+    gamma: 0.1
+    reg_alpha: 0.1  # L1 regularization
+    reg_lambda: 1.0  # L2 regularization
+    objective: "reg:squarederror"
+    eval_metric: ["rmse", "mae"]
+  
+  # Embedding output
+  market_embedding_dim: 64  # Size of T_dynamic vector
+
+# Feature Engineering
+features:
+  # Static features
+  static:
+    - "grade"                # PSA grade (8, 9, 10)
+    - "population_report"    # How many exist
+    - "set_rarity"          # Set rarity index
+    - "card_number"         # Card number in set
+    - "is_first_edition"    # Boolean
+    - "is_shadowless"       # Boolean (for vintage)
+  
+  # Time-series engineered features
+  temporal:
+    # Rolling statistics
+    rolling_windows: [7, 14, 30, 60]  # Days
+    rolling_metrics:
+      - "mean"       # Rolling average price
+      - "std"        # Rolling volatility
+      - "min"
+      - "max"
+      - "median"
+    
+    # Momentum features
+    momentum:
+      - "price_change_7d"    # % change over 7 days
+      - "price_change_30d"   # % change over 30 days
+      - "velocity_7d"        # Rate of price change
+      - "acceleration_7d"    # Second derivative
+    
+    # Volume features
+    volume:
+      - "transaction_count_7d"
+      - "transaction_count_30d"
+      - "avg_daily_volume"
+      - "volume_trend"
+    
+    # Market regime features
+    regime:
+      - "bull_bear_indicator"     # Market direction
+      - "volatility_regime"       # High/low volatility
+      - "liquidity_score"         # Market depth
+    
+    # Seasonality
+    seasonal:
+      - "month"                   # Cyclical encoding
+      - "quarter"
+      - "is_holiday_season"       # Nov-Jan flag
+      - "days_since_release"      # Card age
+
+  # Lag features
+  lags:
+    target_lags: [1, 7, 14, 30]  # Previous prices
+    feature_lags: [7, 30]        # Lagged features
+
+  # Derived features
+  derived:
+    - "price_to_population_ratio"
+    - "scarcity_index"
+    - "liquidity_ratio"
+    - "market_cap_proxy"  # price × population
+
+# Time-Series Handling
+temporal_config:
+  # Train/test split strategy
+  split_method: "time_based"  # Options: time_based, expanding_window, sliding_window
+  test_size: 0.2
+  validation_size: 0.15
+  
+  # Minimum observations
+  min_observations_per_card: 30  # Require at least N data points
+  
+  # Stationarity
+  check_stationarity: true
+  differencing_order: 0  # Auto-determined if null
+  
+  # Handle missing data
+  missing_strategy: "forward_fill"  # Options: forward_fill, interpolate, drop
+  max_missing_threshold: 0.3  # Drop cards with >30% missing data
+
+# Training Configuration
+training:
+  # Cross-validation
+  cv_method: "time_series_split"  # Respects temporal ordering
+  n_splits: 5
+  
+  # Early stopping
+  early_stopping:
+    rounds: 50
+    metric: "rmse"
+  
+  # Hyperparameter tuning
+  hyperparameter_tuning:
+    enabled: true
+    method: "optuna"  # Options: optuna, grid_search, random_search
+    n_trials: 100
+    timeout: 3600  # 1 hour
+  
+  # Feature selection
+  feature_selection:
+    enabled: true
+    method: "importance"  # Use model feature importance
+    threshold: 0.01  # Keep features with importance > 1%
+
+# Validation Strategy
+validation:
+  # Backtesting
+  backtesting:
+    enabled: true
+    method: "walk_forward"  # Options: walk_forward, expanding_window
+    initial_train_size: 0.6
+    step_size: 7  # Days to step forward
+    
+  # Out-of-sample testing
+  oos_periods: 3  # Number of future periods to test
+  
+  # Metrics
+  metrics:
+    - "mae"
+    - "rmse"
+    - "mape"
+    - "r2_score"
+    - "median_absolute_error"
+  
+  # Regime-specific evaluation
+  evaluate_by_regime: true  # Separate metrics for bull/bear/neutral
+
+# Baseline Comparisons
+baselines:
+  - "naive_mean"           # Simple average
+  - "rolling_mean_7d"      # 7-day moving average
+  - "arima"                # Pure time-series
+  - "prophet"              # Facebook Prophet
+  - "static_features_only" # No temporal features
+
+# Reproducibility
+seed: 42
+deterministic: true
+
+# Hardware
+n_jobs: -1  # Use all CPU cores
+
+# Logging
+logging:
+  experiment_name: "market_module_v1"
+  use_wandb: true
+  wandb_project: "pokemon-card-valuation"
+  log_interval: 100
+  save_artifacts: true
+  artifact_dir: "models/market/artifacts"
+
+# Output
+output:
+  save_embeddings: true
+  embedding_path: "data/embeddings/market_embeddings.pkl"
+  save_feature_importance: true
+  save_predictions: true
