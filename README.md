@@ -13,7 +13,7 @@ A production-grade multimodal machine learning system that integrates visual con
 
 **System Architecture**
 
-
+```bash
 ┌─────────────────────────────────────────────────────────────┐
 │                     INPUT LAYER                              │
 │  ┌──────────────────┐         ┌──────────────────┐          │
@@ -55,12 +55,13 @@ A production-grade multimodal machine learning system that integrates visual con
               │  • Confidence Int.  │
               │  • Feature Contrib. │
               └─────────────────────┘
-
+```
 
 
 
 **Repository Structure**
 
+```bash
 
 pokemon-card-valuation/
 │
