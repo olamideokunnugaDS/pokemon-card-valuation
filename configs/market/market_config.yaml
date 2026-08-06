@@ -1,0 +1,70 @@
+# Market Module Configuration
+# Time-aware market state encoder for Pokemon card valuation
+
+market_module:
+  # Model architecture
+  model:
+    type: "gradient_boosting" # Options: gradient_boosting, mlp, linear
+    embedding_dim: 64 # Market state embedding size
+
+  # Gradient boosting parameters
+  gradient_boosting:
+    n_estimators: 100
+    max_depth: 5
+    learning_rate: 0.05
+    subsample: 0.8
+    colsample_bytree: 0.8
+
+  # MLP parameters (if using neural network)
+  mlp:
+    hidden_layers: [128, 64]
+    dropout: 0.3
+    activation: "relu"
+
+  # Feature engineering
+  features:
+    # Time-series features
+    temporal:
+      rolling_windows: [7, 14, 30] # days
+      include_momentum: true
+      include_volatility: true
+      include_volume_proxy: true
+
+    # Structural features
+    structural:
+      - "grade" # PSA grade (8, 9, 10)
+      - "card_name" # Pokemon name
+
+    # Lag features
+    lags: [1, 3, 7, 14] # days
+
+  # Training parameters
+  training:
+    # Temporal split (chronological)
+    train_ratio: 0.70
+    val_ratio: 0.15
+    test_ratio: 0.15
+
+    # Target variable
+    target: "price"
+
+    # Validation
+    cv_folds: 3 # Time-series cross-validation
+
+  # Evaluation metrics
+  evaluation:
+    metrics:
+      - "mae" # Mean Absolute Error
+      - "rmse" # Root Mean Squared Error
+      - "mape" # Mean Absolute Percentage Error
+      - "r2" # R-squared
+
+  # Paths
+  paths:
+    prices_data: "data/processed/prices_filtered.parquet"
+    output_dir: "models/market"
+    embeddings_dir: "data/embeddings"
+    features_dir: "data/processed/features"
+
+  # Random seed
+  random_seed: 42

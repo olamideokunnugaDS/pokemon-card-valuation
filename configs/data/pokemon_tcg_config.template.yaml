@@ -1,0 +1,76 @@
+# Pokemon TCG API Configuration Template
+# Copy this file to 'pokemon_tcg_config.yaml' and add your real API key
+# Get a free key at: https://dev.pokemontcg.io
+
+pokemon_tcg:
+  # Your API key
+  api_key: "YOUR_POKEMON_TCG_API_KEY_HERE"
+
+  # API endpoint
+  base_url: "https://api.pokemontcg.io/v2"
+
+  # Rate limiting
+  requests_per_second: 10
+
+  # Priority cards for lookup/backfill
+  target_cards:
+    - name: "Charizard"
+      set: "base1"
+      number: "4"
+      priority: 1
+
+    - name: "Blastoise"
+      set: "base1"
+      number: "2"
+      priority: 1
+
+    - name: "Venusaur"
+      set: "base1"
+      number: "15"
+      priority: 1
+
+    - name: "Pikachu"
+      set: "base1"
+      number: "58"
+      priority: 1
+
+    - name: "Mewtwo"
+      set: "base1"
+      number: "10"
+      priority: 1
+
+    - name: "Alakazam"
+      set: "base1"
+      number: "1"
+      priority: 1
+
+    - name: "Gyarados"
+      set: "base1"
+      number: "6"
+      priority: 1
+
+    - name: "Umbreon"
+      set: "neo2"
+      number: "13"
+      priority: 1
+
+    - name: "Espeon"
+      set: "neo2"
+      number: "1"
+      priority: 1
+
+    - name: "Lugia"
+      set: "neo1"
+      number: "9"
+      priority: 1
+
+  # Target grades for image collection
+  target_grades:
+    - 10
+    - 9
+    - 8
+
+  # Output settings
+  output:
+    metadata_dir: "data/processed"
+    raw_backup_dir: "data/raw/pokemon_tcg"

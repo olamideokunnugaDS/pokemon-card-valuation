@@ -1,0 +1,53 @@
+# eBay API Configuration Template
+# Copy this file to 'ebay_config.yaml' and add your real App ID
+
+ebay:
+  # Production credentials
+  app_id: "YOUR_EBAY_APP_ID_HERE"
+
+  # API endpoints
+  finding_api_url: "https://svcs.ebay.com/services/search/FindingService/v1"
+
+  # Rate limiting
+  max_calls_per_day: 5000
+  calls_per_second: 5
+
+  # Search parameters
+  search:
+    # Target card names (high-value, high-liquidity)
+    # Modify this list to focus on specific cards
+    target_cards:
+      - "Charizard"
+      - "Blastoise"
+      - "Venusaur"
+      - "Pikachu"
+      - "Mewtwo"
+      - "Alakazam"
+      - "Chansey"
+      - "Gyarados"
+      - "Umbreon"
+      - "Espeon"
+      - "Lugia"
+      - "Ho-Oh"
+
+    # Target grades
+    target_grades:
+      - 10
+      - 9
+      - 8
+
+    # Search filters
+    grading_company: "PSA"
+
+    # Time range for sold items (days)
+    sold_items_days: 90
+
+    # Results per page
+    entries_per_page: 100
+    max_pages: 10
+
+  # Output settings
+  output:
+    raw_data_dir: "data/raw/ebay"
+    processed_data_dir: "data/processed"
+    images_dir: "data/raw/images/ebay"
