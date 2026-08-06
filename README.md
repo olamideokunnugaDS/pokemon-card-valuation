@@ -1,344 +1,120 @@
-**Multimodal Valuation Engine for Collectible Pokémon Cards**
+# Pokémon Card Valuation
 
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+A multimodal machine learning system for valuing PSA-graded Pokémon cards, built around one core idea: **card condition and market state are separate signals and should be learned separately before being fused.**
 
-**Project Overview**
+Most valuation approaches either grade a card visually and ignore the market, or model price movement and ignore what the card actually looks like. This project builds both representations independently — a CNN encoder for physical condition, a temporal encoder for market state — then tests, empirically, whether fusing them beats either one alone, and whether keeping them separate beats mashing all features into one model.
 
-A production-grade multimodal machine learning system that integrates visual condition analysis (CNN-trained), time-aware market modelling (hybrid temporal regressor), and probabilistic fusion to generate interpretable, uncertainty-calibrated valuations for graded Pokémon trading cards.
+Trained and evaluated on 3,812 real auction transactions (Jan 2021–Apr 2026) across 7 Pokémon card species, PSA grades 8–10, under a strict temporal split that forces every model to generalize forward in time through genuine market drift.
 
-*Core Innovation*: Disentangling intrinsic card quality from extrinsic market dynamics to produce stable, defensible valuations.
+## Headline results
 
+**Card condition (vision).** A two-stage disentangled CNN separates *what card it is* from *what condition it's in*. Stage 1 (identity) is trained first and frozen; Stage 2 (condition) is trained against an orthogonality penalty that pushes its embeddings away from Stage 1's, so condition signal can't just piggyback on identity.
 
-**System Architecture**
+| Stage | Task | Accuracy | Baseline | Lift |
+|---|---|---|---|---|
+| 1 — Identity | Which of 7 cards is this? | 91.3% | 21.3% | +69.9pp |
+| 2 — Condition | PSA grade (8/9/10)? | 49.0% | 40.2% | +8.8pp |
 
-```bash
-┌─────────────────────────────────────────────────────────────┐
-│                     INPUT LAYER                             │
-│  ┌──────────────────┐         ┌──────────────────┐          │
-│  │  Card Image      │         │  Market Data     │          │
-│  │  (High-Res)      │         │  (Time-Series)   │          │
-│  └──────────────────┘         └──────────────────┘          │
-└─────────────────────────────────────────────────────────────┘
-           │                              │
-           ▼                              ▼
-┌─────────────────────┐      ┌─────────────────────┐
-│   VISION MODULE     │      │   MARKET MODULE     │
-│   (CNN Encoder)     │      │   (Hybrid Temporal) │
-│                     │      │                     │
-│  • Centering        │      │  • Rolling Avg      │
-│  • Edge Wear        │      │  • Momentum         │
-│  • Surface Quality  │      │  • Volatility       │
-│  • Corner Analysis  │      │  • Volume Signals   │
-│                     │      │  • Regime State     │
-└─────────────────────┘      └─────────────────────┘
-           │                              │
-           │    C_visual (128-256)        │   T_dynamic (16-64)
-           └──────────────┬───────────────┘
-                          ▼
-              ┌─────────────────────┐
-              │   FUSION NETWORK    │
-              │   (Multimodal)      │
-              │                     │
-              │  • Embedding Align  │
-              │  • Feature Fusion   │
-              │  • Uncertainty Est. │
-              └─────────────────────┘
-                          │
-                          ▼
-              ┌─────────────────────┐
-              │  VALUATION OUTPUT   │
-              │                     │
-              │  V ~ N(μ, σ²)       │
-              │  • Point Estimate   │
-              │  • Confidence Int.  │
-              │  • Feature Contrib. │
-              └─────────────────────┘
+The identity encoder is strong and clean (macro F1 = 0.91). Condition is the harder problem — PSA 8–10 differences are visually subtle — but the model captures real ordinal structure: 93.8% of predictions land within one adjacent grade, mean absolute error is 0.54 grade-levels, and the orthogonality constraint drives identity/condition cosine similarity to ~0.000004, i.e. near-complete disentanglement.
+
+**Market state.** Four approaches were compared on identical held-out test data (n=1,050, spanning a period of significant price drift):
+
+| Model | MAE | RMSE | MAPE | R²(log) |
+|---|---|---|---|---|
+| Static-only (3 features) | $1,421 | $3,483 | 67.6% | −0.256 |
+| Static + calendar (6 features) | $1,361 | $3,463 | 65.4% | +0.108 |
+| Hybrid XGBoost (31 features) | $1,405 | $3,499 | 67.2% | −0.134 |
+| **LSTM (transaction-history sequence)** | **$1,284** | **$3,311** | 112.6% | **+0.307** |
+
+The XGBoost model looks strong in training and then falls apart on test data — classic overfitting to a market state that later drifted. The LSTM, which conditions on each card's own recent transaction history rather than memorizing static feature-price mappings, is the only model that holds up out of sample.
+
+**Fusion.** 16 architectural variants were trained and evaluated (identity-only, condition-only, market-only, every pairwise combination, and full fusion), each averaged over 5 seeds, with statistical significance assessed via paired double-bootstrap (1,000 resamples over both rows and seeds).
+
+- **Best variant:** identity + condition + market-LSTM embeddings fused through a small MLP head → **R²(log) = +0.340 ± 0.062** on test, the best of all 16 variants.
+- **Decomposition beats monolithic modeling:** the best fusion variant beats a single XGBoost model trained on all raw features by **+0.453 R²(log)** (95% CI [+0.351, +0.562]) — keeping condition and market representations separate until late fusion is not just cleaner, it's measurably more accurate.
+- **Fusion beats the best single modality:** it beats the market-LSTM running alone by **+0.116 R²(log)** (95% CI [+0.032, +0.177]).
+- **More modalities isn't automatically better:** adding the XGBoost market embedding into the best 3-input variant *hurts* it by −0.147 R²(log) (95% CI [−0.236, −0.073]) — XGBoost's overfitting propagates straight into the fusion head. Picking the right inputs mattered more than maximizing input count.
+
+Full per-variant numbers are in [`results/fusion_master_comparison.csv`](results/fusion_master_comparison.csv); every pairwise significance test is in [`results/fusion_bootstrap_results.json`](results/fusion_bootstrap_results.json). A fuller write-up, including subgroup breakdowns (temporal segments, PSA grade, cold-start listings) and failure-mode analysis, is in [`docs/technical_report.md`](docs/technical_report.md).
+
+## Repository structure
+
 ```
-
-
-
-**Repository Structure**
-
-```bash
-
 pokemon-card-valuation/
-│
-├── src/                          ## Source code modules
-│   ├── vision_module/            ## CNN-based condition encoder
-│   │   ├── model.py              ## Architecture definition
-│   │   ├── data_loader.py        ## Image preprocessing pipeline
-│   │   ├── train.py              ## Training loop
-│   │   ├── interpretability.py   ## Grad-CAM, saliency maps
-│   │   └── feature_extractor.py  ## Embedding extraction
-│   │
-│   ├── market_module/            ## Time-aware market state encoder
-│   │   ├── feature_engineering.py ## Time-series feature creation
-│   │   ├── model.py              ## Hybrid regressor
-│   │   ├── train.py              ## Temporal training protocol
-│   │   └── regime_detector.py    ## Market regime classification
-│   │
-│   ├── fusion_module/            ## Multimodal integration
-│   │   ├── fusion_network.py     ## Architecture
-│   │   ├── train.py              ## End-to-end training
-│   │   ├── inference.py          ## Valuation pipeline
-│   │   └── uncertainty.py        ## Probabilistic outputs
-│   │
-│   ├── data_pipeline/            ## Data management
-│   │   ├── collectors/           ## Data scrapers (eBay, PSA, etc.)
-│   │   ├── preprocessors/        ## Cleaning & transformation
-│   │   ├── validators/           ## Data quality checks
-│   │   └── augmentation.py       ## Image augmentation
-│   │
-│   ├── evaluation/               ## Evaluation & metrics
-│   │   ├── metrics.py            ## MAE, RMSE, MAPE, calibration
-│   │   ├── ablation.py           ## Ablation study runners
-│   │   ├── backtesting.py        ## Temporal validation
-│   │   └── visualization.py      ## Results plotting
-│   │
-│   └── utils/                    ## Shared utilities
-│       ├── config_loader.py      ## Configuration management
-│       ├── logging_setup.py      ## Logging infrastructure
-│       ├── seed_manager.py       ## Reproducibility controls
-│       └── helpers.py            ## Common functions
-│
-├── configs/                      ## Configuration files
-│   ├── vision/
-│   │   └── cnn_config.yaml       ## CNN hyperparameters
-│   ├── market/
-│   │   └── temporal_config.yaml  ## Market model settings
-│   ├── fusion/
-│   │   └── fusion_config.yaml    ## Fusion architecture
-│   └── data/
-│       └── data_config.yaml      ## Data pipeline settings
-│
-├── data/                         ## Data storage (gitignored)
-│   ├── raw/                      ## Original scraped data
-│   ├── processed/                ## Cleaned datasets
-│   ├── embeddings/               ## Extracted features
-│   └── external/                 ## External reference data
-│
-├── models/                       ## Trained model artifacts
-│   ├── vision/                   ## CNN checkpoints
-│   ├── market/                   ## Market model weights
-│   ├── fusion/                   ## Fusion network weights
-│   └── checkpoints/              ## Training checkpoints
-│
-├── notebooks/                    ## Jupyter notebooks
-│   ├── exploratory/              ## Initial data exploration
-│   ├── analysis/                 ## Results analysis
-│   └── visualization/            ## Figure generation
-│
-├── scripts/                      ## Executable scripts
-│   ├── data_collection/          ## Data scraping scripts
-│   ├── preprocessing/            ## Data preparation
-│   ├── training/                 ## Model training orchestration
-│   └── evaluation/               ## Evaluation runners
-│
-├── tests/                        ## Unit & integration tests
-│   ├── unit/                     ## Component tests
-│   └── integration/              ## End-to-end tests
-│
-├── results/                      ## Experiment outputs
-│   ├── figures/                  ## Plots and visualizations
-│   ├── tables/                   ## Numerical results
-│   ├── metrics/                  ## Performance metrics
-│   └── reports/                  ## Generated reports
-│
-├── docs/                         ## Documentation
-│   ├── architecture/             ## System design docs
-│   ├── methodology/              ## Research methodology
-│   └── api/                      ## API documentation
-│
-├── logs/                         ## Training & experiment logs
-│
-├── .gitignore                    ## Git ignore rules
-├── requirements.txt              ## Python dependencies
-├── environment.yml               ## Conda environment (optional)
-├── setup.py                      ## Package installation
-├── pyproject.toml                ## Project metadata
-├── Makefile                      ## Automation commands
-├── LICENSE                       ## MIT License
-└── README.md                     ## This file
+├── notebooks/                          # the experiment record — run top to bottom, self-contained
+│   ├── 01_vision_module_intrinsic_condition_encoder.ipynb
+│   ├── 02_market_module.ipynb
+│   └── 03_fusion_module.ipynb
+├── src/                                 # productionized, reusable extraction of the core architecture
+│   ├── vision_module/                   # IdentityEncoder, ConditionEncoder, orthogonality loss, Grad-CAM
+│   ├── market_module/                   # rolling/momentum/volume features, LSTMRegressor, training loops
+│   ├── fusion_module/                   # variant-input builder, fusion MLP, early stopping, training loop
+│   ├── evaluation/                      # shared evaluate_predictions(), bootstrap + subgroup ablation tools
+│   └── utils/                           # seed control, config loading
+├── configs/                             # YAML configs for each module (data/vision/market/fusion)
+├── models/                              # trained weights (market + fusion; see note below)
+├── results/                             # headline metrics + bootstrap significance tests, as CSV/JSON
+├── data/                                # sample of engineered market features (full parquet also included)
+├── assets/sample_cards/                 # example PSA slab images referenced in the technical report
+├── docs/technical_report.md             # full methodology, results, and limitations write-up
+└── requirements.txt
 ```
 
+### Why both notebooks *and* `src/`
 
+The notebooks are the actual experiment record — they run top to bottom, each one self-contained, and reproduce every number in this README exactly as they were originally produced. `src/` is a separate, deliberate refactor: every model class and core training/evaluation function pulled out of the notebooks, stripped of notebook-global state, and rewritten to take explicit parameters instead. `evaluate_predictions` and `set_seed`, which were copy-pasted identically across all three notebooks, now exist once. Variant-specific orchestration and one-off diagnostic code stayed in the notebooks — that's exploratory glue, not reusable architecture.
 
-**1. Environment Setup**
+If you want to see *how* a result was produced, read the notebook. If you want to reuse the architecture in a new project, import from `src/`.
+
+## Setup
+
+Requires **Python 3.12+** — `03_fusion_module.ipynb` uses nested f-strings (PEP 701) that only parse on 3.12 and later.
 
 ```bash
-## Clone repository
 git clone https://github.com/olamideokunnugaDS/pokemon-card-valuation.git
 cd pokemon-card-valuation
-
-## Create virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-## Install dependencies
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-
-## Or use conda
-conda env create -f environment.yml
-conda activate pokemon-valuation
+jupyter notebook notebooks/01_vision_module_intrinsic_condition_encoder.ipynb
 ```
 
-**2. Data Preparation**
+Each notebook detects whether it's running in Google Colab or locally and resolves paths accordingly — no manual path editing needed either way.
 
-```bash
-## Collect raw data
-python scripts/data_collection/scrape_ebay.py --config configs/data/data_config.yaml
-
-## Preprocess and clean
-python scripts/preprocessing/prepare_data.py --input data/raw --output data/processed
-```
-
-**3. Training Pipeline**
-
-```bash
-## Train Vision Module
-python scripts/training/train_vision.py --config configs/vision/cnn_config.yaml
-
-## Train Market Module
-python scripts/training/train_market.py --config configs/market/temporal_config.yaml
-
-## Train Fusion Network (end-to-end)
-python scripts/training/train_fusion.py --config configs/fusion/fusion_config.yaml
-```
-
-**4. Evaluation**
-
-```bash
-## Run full evaluation suite
-python scripts/evaluation/run_evaluation.py --experiment fusion_v1
-
-## Generate ablation studies
-python scripts/evaluation/run_ablation.py --output results/ablation/
-```
-
-**5. Inference**
+Using the extracted library directly:
 
 ```python
-from src.fusion_module.inference import ValuationEngine
-
-## Initialize engine
-engine = ValuationEngine.from_pretrained('models/fusion/best_model.pth')
-
-## Generate valuation
-result = engine.predict(
-    image_path='path/to/card_image.jpg',
-    metadata={'set': 'base_set', 'number': '4', 'grade': 'PSA 10'}
-)
-
-print(f"Estimated Value: ${result.mean_price:.2f}")
-print(f"Confidence Interval: [{result.lower_bound:.2f}, {result.upper_bound:.2f}]")
-print(f"Uncertainty: ±${result.std:.2f}")
+from src.evaluation.metrics import evaluate_predictions
+from src.market_module.model import LSTMRegressor
+from src.market_module.train import train_lstm
+from src.fusion_module.model import make_fusion_mlp
 ```
 
+## Data
 
+3,812 auction transactions of PSA-graded Pokémon cards (7 species, grades PSA 8–10), scraped from eBay sold listings and cross-referenced against the PSA public certification API, spanning January 2021 to April 2026.
 
-**Research Questions**
+Splits are strictly temporal to prevent look-ahead leakage — for any transaction, only earlier transactions are ever visible to a model:
 
-1. *RQ1*: To what extent can a multimodal framework combining intrinsic visual features and time-aware market features produce accurate and stable valuations?
+| Split | Rows | Ends |
+|---|---|---|
+| Train | 2,170 | 24 Mar 2025 |
+| Val | 592 | 2 Oct 2025 |
+| Test | 1,050 | 13 Apr 2026 |
 
-2. *RQ2*: How effectively can CNNs extract interpretable condition features that correlate with grading outcomes and market prices?
+`data/market_features_sample.csv` is a 100-row sample of the full engineered feature set (`data/market_features.parquet`, 3,812 rows × 42 columns) included so the pipeline can be inspected without loading the full file.
 
-3. *RQ3*: Does incorporating engineered time-series market features improve valuation stability compared to static or purely time-series models?
+## What's not included
 
-4. *RQ4*: Does fusing intrinsic and extrinsic embeddings outperform unimodal models in predictive accuracy and robustness?
+- **Scraping/collection scripts.** Data collection was done via ad-hoc eBay and PSA API automation rather than a reusable pipeline, so there's no `data_pipeline/` module here — it would need to be built fresh rather than extracted.
+- **Vision model checkpoints.** The Stage 1/Stage 2 CNN weights aren't in this repo; retrain via `01_vision_module_intrinsic_condition_encoder.ipynb`, or reach out (contact below) if you need the trained weights directly.
+- **`models/market/price_predictor.pkl`** is intentionally excluded — an auxiliary artifact that isn't part of the core pipeline (the two models that matter, XGBoost and the LSTM, are both included and validated).
 
+## Tech stack
 
+PyTorch + torchvision (ResNet50 backbone, LSTM), XGBoost, scikit-learn, pandas/PyArrow, NumPy/SciPy.
 
-**Experimental Design**
+## Contact
 
-*Module Evaluation*
-
-| Module | Metrics | Validation Strategy |
-|--------|---------|---------------------|
-| *Vision* | Grade correlation, interpretability quality, robustness | Cross-validation, lighting/angle variations |
-| *Market* | MAE, RMSE, MAPE, regime stability | Walk-forward, expanding window |
-| *Fusion* | Multimodal improvement, uncertainty calibration | Out-of-sample backtesting, ablation |
-
-**Ablation Studies**
-
-- Vision-only baseline
-- Market-only baseline
-- Fusion (early vs late)
-- Static vs temporal features
-- With/without uncertainty estimation
-
-
-
-**Technology Stack**
-
-- *Deep Learning*: PyTorch, torchvision
-- *Time-Series*: statsmodels, Prophet, NeuralProphet
-- *ML*: scikit-learn, XGBoost, LightGBM
-- *Data*: pandas, NumPy, Pillow
-- *Visualization*: matplotlib, seaborn, plotly
-- *Experiment Tracking*: Weights & Biases (wandb)
-- *Testing*: pytest
-- *Code Quality*: black, flake8, mypy
-
-
-
-**Key Results**
-
-*(To be updated after evaluation)*
-
-- *Vision Module*: Grade correlation (ρ = TBD)
-- *Market Module*: Out-of-sample MAPE = TBD%
-- *Fusion System*: Multimodal improvement = TBD%
-- *Uncertainty Calibration*: Coverage = TBD%
-
-
-
-**Citation**
-
-If you use this work, please cite:
-
-```bibtex
-@mastersthesis{Israel Okunnuga 2025pokemon,
-  title={A Multimodal Framework for Grading-Aware Valuation of Collectible Assets: A Pokémon Case Study},
-  author={Israel Okunnuga},
-  year={2025},
-  school={Aston University}
-}
-```
-
-
-
-**License**
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-
-
-**Contributions**
-
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-
-
-**Contact**
-
-**ISRAEL OKUNNUGA**  
-Email: olamideokunnuga@gmail.com  
-GitHub: [@olamideokunnugaDS](https://github.com/olamideokunnugaDS)  
-LinkedIn: [Israel Okunnuga](https://www.linkedin.com/in/israelokunnuga/)
-
-
-
-**Acknowledgments**
-
-- PSA and Beckett for grading standards reference
-- Pokémon Company for intellectual property
-- Academic supervisors and reviewers
-- Open-source community
-
-
-
-**Status**: Active Development (Week X/10)
-
-**Last Updated**: [DATE]
+**Israel Okunnuga**
+[GitHub](https://github.com/olamideokunnugaDS) · [LinkedIn](https://www.linkedin.com/in/israelokunnuga/)
