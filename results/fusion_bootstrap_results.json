@@ -1,0 +1,142 @@
+{
+  "section": 11,
+  "timestamp": "2026-05-14T14:30:56.331994+00:00",
+  "method": "paired double bootstrap (rows \u00d7 seeds, both with replacement)",
+  "n_iterations_per_pair": 1000,
+  "ci_alpha": 0.05,
+  "rng_seed": 42,
+  "pairs": [
+    {
+      "pair": "V13 \u2212 V2",
+      "vid_a": 13,
+      "vid_b": 2,
+      "description": "RQ1 contract headline (decomposition vs monolithic)",
+      "observed_gap": 0.30596911907196045,
+      "ci_lo_95": 0.20698269605636596,
+      "ci_hi_95": 0.4027192160487175,
+      "p_gap_pos": 1.0,
+      "classification": "supported (positive)"
+    },
+    {
+      "pair": "V10 \u2212 V9",
+      "vid_a": 10,
+      "vid_b": 9,
+      "description": "condition lift over identity + LSTM",
+      "observed_gap": 0.037861526012420654,
+      "ci_lo_95": -0.0044669583439826965,
+      "ci_hi_95": 0.07500720024108885,
+      "p_gap_pos": 0.966,
+      "classification": "directional positive (p=0.966; CI marginally includes 0)"
+    },
+    {
+      "pair": "V12 \u2212 V11",
+      "vid_a": 12,
+      "vid_b": 11,
+      "description": "condition lift over identity + XGB",
+      "observed_gap": 0.120979905128479,
+      "ci_lo_95": 0.0426400363445282,
+      "ci_hi_95": 0.20441071987152098,
+      "p_gap_pos": 1.0,
+      "classification": "supported (positive)"
+    },
+    {
+      "pair": "V9 \u2212 V11",
+      "vid_a": 9,
+      "vid_b": 11,
+      "description": "LSTM vs XGB as fusion partner for identity",
+      "observed_gap": 0.5509912371635437,
+      "ci_lo_95": 0.4618826746940613,
+      "ci_hi_95": 0.6495278552174568,
+      "p_gap_pos": 1.0,
+      "classification": "supported (positive)"
+    },
+    {
+      "pair": "V13 \u2212 V7",
+      "vid_a": 13,
+      "vid_b": 7,
+      "description": "market addition to full vision",
+      "observed_gap": 0.9289803504943848,
+      "ci_lo_95": 0.7982525900006294,
+      "ci_hi_95": 1.062195086479187,
+      "p_gap_pos": 1.0,
+      "classification": "supported (positive)"
+    },
+    {
+      "pair": "V13 \u2212 V8",
+      "vid_a": 13,
+      "vid_b": 8,
+      "description": "vision addition to full market",
+      "observed_gap": 0.5594158172607422,
+      "ci_lo_95": 0.3710094228386879,
+      "ci_hi_95": 0.7628525450825691,
+      "p_gap_pos": 1.0,
+      "classification": "supported (positive)"
+    },
+    {
+      "pair": "V13 \u2212 V10",
+      "vid_a": 13,
+      "vid_b": 10,
+      "description": "XGB addition to id+cond+LSTM",
+      "observed_gap": -0.14696276187896729,
+      "ci_lo_95": -0.23567731976509093,
+      "ci_hi_95": -0.07253098487854004,
+      "p_gap_pos": 0.0,
+      "classification": "supported (negative)"
+    },
+    {
+      "pair": "V13 \u2212 V12",
+      "vid_a": 13,
+      "vid_b": 12,
+      "description": "LSTM addition to id+cond+XGB",
+      "observed_gap": 0.32091009616851807,
+      "ci_lo_95": 0.2552188664674759,
+      "ci_hi_95": 0.39628698378801347,
+      "p_gap_pos": 1.0,
+      "classification": "supported (positive)"
+    },
+    {
+      "pair": "V10 \u2212 V2",
+      "vid_a": 10,
+      "vid_b": 2,
+      "description": "RQ1 operative headline (V10 is the best fusion)",
+      "observed_gap": 0.45293188095092773,
+      "ci_lo_95": 0.3512030601501465,
+      "ci_hi_95": 0.5617224916815757,
+      "p_gap_pos": 1.0,
+      "classification": "supported (positive)"
+    },
+    {
+      "pair": "V10 \u2212 V5",
+      "vid_a": 10,
+      "vid_b": 5,
+      "description": "RQ4 operative headline (best fusion vs best unimodal)",
+      "observed_gap": 0.116111159324646,
+      "ci_lo_95": 0.03232644647359848,
+      "ci_hi_95": 0.17673015445470808,
+      "p_gap_pos": 0.998,
+      "classification": "supported (positive)"
+    },
+    {
+      "pair": "V14 \u2212 V9",
+      "vid_a": 14,
+      "vid_b": 9,
+      "description": "condition substitutes for identity as vision anchor (Section 8b)",
+      "observed_gap": -0.06686651706695557,
+      "ci_lo_95": -0.13696710616350175,
+      "ci_hi_95": 0.008394588530063592,
+      "p_gap_pos": 0.046,
+      "classification": "directional negative (p=0.954; CI marginally includes 0)"
+    },
+    {
+      "pair": "V14 \u2212 V5",
+      "vid_a": 14,
+      "vid_b": 5,
+      "description": "condition adds to LSTM alone (Section 8b)",
+      "observed_gap": 0.011383116245269775,
+      "ci_lo_95": -0.053816688060760495,
+      "ci_hi_95": 0.07619274705648421,
+      "p_gap_pos": 0.61,
+      "classification": "inconclusive (p=0.610)"
+    }
+  ]
+}
