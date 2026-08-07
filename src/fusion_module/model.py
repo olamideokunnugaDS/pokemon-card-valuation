@@ -7,8 +7,8 @@ import torch.nn as nn
 
 
 def make_fusion_mlp(input_dim: int, hidden_layers=(256, 64), dropout: float = 0.2, output_dim: int = 1) -> nn.Module:
-    """Build the fusion MLP head. Only `input_dim` varies across variants —
-    every fusion variant (identity-only through full 4-way fusion) shares
+    """Build the fusion MLP head. Only `input_dim` varies across variants.
+    Every fusion variant (identity-only through full 4-way fusion) shares
     this exact architecture by design, so gains are attributable to the
     inputs, not to per-variant architecture tuning.
     """
