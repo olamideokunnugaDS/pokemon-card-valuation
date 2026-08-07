@@ -16,7 +16,7 @@ import torch
 from torch.utils.data import Dataset
 
 # Canonical block concatenation order. Any variant with multiple input
-# blocks concatenates them in this order — this is a contract, not an
+# blocks concatenates them in this order. This is a contract, not an
 # implementation detail: predictions are only comparable across runs if
 # inputs are always built the same way.
 BLOCK_ORDER = ["identity", "condition", "market_lstm", "market_xgb"]
