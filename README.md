@@ -1,23 +1,23 @@
 # Pokémon Card Valuation
 
-A multimodal machine learning system for valuing PSA-graded Pokémon cards, built around one core idea: **card condition and market state are separate signals and should be learned separately before being fused.**
+A multimodal machine learning system for valuing PSA-graded Pokémon cards, built around the core idea that card condition and market state are separate signals and should be learned separately before being fused.
 
-Most valuation approaches either grade a card visually and ignore the market, or model price movement and ignore what the card actually looks like. This project builds both representations independently — a CNN encoder for physical condition, a temporal encoder for market state — then tests, empirically, whether fusing them beats either one alone, and whether keeping them separate beats mashing all features into one model.
+Most valuation approaches either grade a card visually and ignore the market, or model price movement and ignore what the card actually looks like. This project builds both representations independently with a CNN encoder for physical condition and a temporal encoder for market state, then tests, empirically, whether fusing them beats either one alone, and whether keeping them separate beats mashing all features into one model.
 
 Trained and evaluated on 3,812 real auction transactions (Jan 2021–Apr 2026) across 7 Pokémon card species, PSA grades 8–10, under a strict temporal split that forces every model to generalize forward in time through genuine market drift.
 
 ## Headline results
 
-**Card condition (vision).** A two-stage disentangled CNN separates *what card it is* from *what condition it's in*. Stage 1 (identity) is trained first and frozen; Stage 2 (condition) is trained against an orthogonality penalty that pushes its embeddings away from Stage 1's, so condition signal can't just piggyback on identity.
+**Card condition (vision):** A two-stage disentangled CNN separates *what card it is* from *what condition it's in*. Stage 1 (identity) is trained first and frozen, Stage 2 (condition) is trained against an orthogonality penalty that pushes its embeddings away from Stage 1's, so condition signal can't just piggyback on identity.
 
 | Stage | Task | Accuracy | Baseline | Lift |
 |---|---|---|---|---|
-| 1 — Identity | Which of 7 cards is this? | 91.3% | 21.3% | +69.9pp |
-| 2 — Condition | PSA grade (8/9/10)? | 49.0% | 40.2% | +8.8pp |
+| 1 - Identity | Which of 7 cards is this? | 91.3% | 21.3% | +69.9pp |
+| 2 - Condition | PSA grade (8/9/10)? | 49.0% | 40.2% | +8.8pp |
 
-The identity encoder is strong and clean (macro F1 = 0.91). Condition is the harder problem — PSA 8–10 differences are visually subtle — but the model captures real ordinal structure: 93.8% of predictions land within one adjacent grade, mean absolute error is 0.54 grade-levels, and the orthogonality constraint drives identity/condition cosine similarity to ~0.000004, i.e. near-complete disentanglement.
+The identity encoder is strong and clean (macro F1 = 0.91). Condition is the harder problem. PSA 8–10 differences are visually subtle, but the model captures real ordinal structure: 93.8% of predictions land within one adjacent grade, mean absolute error is 0.54 grade-levels, and the orthogonality constraint drives identity/condition cosine similarity to ~0.000004, i.e. near-complete disentanglement.
 
-**Market state.** Four approaches were compared on identical held-out test data (n=1,050, spanning a period of significant price drift):
+**Market state:** Four approaches were compared on identical held-out test data (n=1,050, spanning a period of significant price drift):
 
 | Model | MAE | RMSE | MAPE | R²(log) |
 |---|---|---|---|---|
@@ -26,16 +26,16 @@ The identity encoder is strong and clean (macro F1 = 0.91). Condition is the har
 | Hybrid XGBoost (31 features) | $1,405 | $3,499 | 67.2% | −0.134 |
 | **LSTM (transaction-history sequence)** | **$1,284** | **$3,311** | 112.6% | **+0.307** |
 
-The XGBoost model looks strong in training and then falls apart on test data — classic overfitting to a market state that later drifted. The LSTM, which conditions on each card's own recent transaction history rather than memorizing static feature-price mappings, is the only model that holds up out of sample.
+The XGBoost model looks strong in training and then falls apart on test data, a classic overfitting to a market state that later drifted. The LSTM, which conditions on each card's own recent transaction history rather than memorizing static feature-price mappings, is the only model that holds up out of sample.
 
-**Fusion.** 16 architectural variants were trained and evaluated (identity-only, condition-only, market-only, every pairwise combination, and full fusion), each averaged over 5 seeds, with statistical significance assessed via paired double-bootstrap (1,000 resamples over both rows and seeds).
+**Fusion:** 16 architectural variants were trained and evaluated (identity-only, condition-only, market-only, every pairwise combination, and full fusion), each averaged over 5 seeds, with statistical significance assessed via paired double-bootstrap (1,000 resamples over both rows and seeds).
 
 - **Best variant:** identity + condition + market-LSTM embeddings fused through a small MLP head → **R²(log) = +0.340 ± 0.062** on test, the best of all 16 variants.
-- **Decomposition beats monolithic modeling:** the best fusion variant beats a single XGBoost model trained on all raw features by **+0.453 R²(log)** (95% CI [+0.351, +0.562]) — keeping condition and market representations separate until late fusion is not just cleaner, it's measurably more accurate.
+- **Decomposition beats monolithic modeling:** the best fusion variant beats a single XGBoost model trained on all raw features by **+0.453 R²(log)** (95% CI [+0.351, +0.562]). Keeping condition and market representations separate until late fusion is cleaner, and measurably more accurate.
 - **Fusion beats the best single modality:** it beats the market-LSTM running alone by **+0.116 R²(log)** (95% CI [+0.032, +0.177]).
-- **More modalities isn't automatically better:** adding the XGBoost market embedding into the best 3-input variant *hurts* it by −0.147 R²(log) (95% CI [−0.236, −0.073]) — XGBoost's overfitting propagates straight into the fusion head. Picking the right inputs mattered more than maximizing input count.
+- **More modalities isn't automatically better:** adding the XGBoost market embedding into the best 3-input variant hurts it by −0.147 R²(log) (95% CI [−0.236, −0.073]). XGBoost's overfitting propagates straight into the fusion head. Picking the right inputs mattered more than maximizing input count.
 
-Full per-variant numbers are in [`results/fusion_master_comparison.csv`](results/fusion_master_comparison.csv); every pairwise significance test is in [`results/fusion_bootstrap_results.json`](results/fusion_bootstrap_results.json). A fuller write-up, including subgroup breakdowns (temporal segments, PSA grade, cold-start listings) and failure-mode analysis, is in [`docs/technical_report.md`](docs/technical_report.md).
+Full per-variant numbers are in [`results/fusion_master_comparison.csv`](results/fusion_master_comparison.csv), every pairwise significance test is in [`results/fusion_bootstrap_results.json`](results/fusion_bootstrap_results.json). A fuller write-up, including subgroup breakdowns (temporal segments, PSA grade, cold-start listings) and failure-mode analysis, is in [`docs/technical_report.md`](docs/technical_report.md).
 
 ## Repository structure
 
