@@ -41,7 +41,7 @@ Full per-variant numbers are in [`results/fusion_master_comparison.csv`](results
 
 ```
 pokemon-card-valuation/
-├── notebooks/                          # the experiment record — run top to bottom, self-contained
+├── notebooks/                          # the experiment record. Run top to bottom, self-contained
 │   ├── 01_vision_module_intrinsic_condition_encoder.ipynb
 │   ├── 02_market_module.ipynb
 │   └── 03_fusion_module.ipynb
@@ -60,15 +60,15 @@ pokemon-card-valuation/
 └── requirements.txt
 ```
 
-### Why both notebooks *and* `src/`
+### Notebooks and `src/`
 
-The notebooks are the actual experiment record — they run top to bottom, each one self-contained, and reproduce every number in this README exactly as they were originally produced. `src/` is a separate, deliberate refactor: every model class and core training/evaluation function pulled out of the notebooks, stripped of notebook-global state, and rewritten to take explicit parameters instead. `evaluate_predictions` and `set_seed`, which were copy-pasted identically across all three notebooks, now exist once. Variant-specific orchestration and one-off diagnostic code stayed in the notebooks — that's exploratory glue, not reusable architecture.
+The notebooks are the actual experiment record and they run top to bottom, each one self-contained, and reproduce every number in this README exactly as they were originally produced. `src/` is a separate, deliberate refactor. Every model class and core training/evaluation function pulled out of the notebooks, stripped of notebook-global state, and rewritten to take explicit parameters instead. `evaluate_predictions` and `set_seed`, which were copy-pasted identically across all three notebooks, now exist once. Variant-specific orchestration and one-off diagnostic code stayed in the notebooks as non-reusable architecture.
 
-If you want to see *how* a result was produced, read the notebook. If you want to reuse the architecture in a new project, import from `src/`.
+If you want to see how a result was produced, read the notebook. If you want to reuse the architecture in a new project, import from `src/`.
 
 ## Setup
 
-Requires **Python 3.12+** — `03_fusion_module.ipynb` uses nested f-strings (PEP 701) that only parse on 3.12 and later.
+Requires **Python 3.12+**. `03_fusion_module.ipynb` uses nested f-strings (PEP 701) that only parse on 3.12 and later.
 
 ```bash
 git clone https://github.com/olamideokunnugaDS/pokemon-card-valuation.git
@@ -79,7 +79,7 @@ pip install -r requirements.txt
 jupyter notebook notebooks/01_vision_module_intrinsic_condition_encoder.ipynb
 ```
 
-Each notebook detects whether it's running in Google Colab or locally and resolves paths accordingly — no manual path editing needed either way.
+Each notebook detects whether it's running in Google Colab or locally and resolves paths accordingly. No manual path editing needed either way.
 
 Using the extracted library directly:
 
@@ -94,7 +94,7 @@ from src.fusion_module.model import make_fusion_mlp
 
 3,812 auction transactions of PSA-graded Pokémon cards (7 species, grades PSA 8–10), scraped from eBay sold listings and cross-referenced against the PSA public certification API, spanning January 2021 to April 2026.
 
-Splits are strictly temporal to prevent look-ahead leakage — for any transaction, only earlier transactions are ever visible to a model:
+Splits are strictly temporal to prevent look-ahead leakage for any transaction. Only earlier transactions are ever visible to a model:
 
 | Split | Rows | Ends |
 |---|---|---|
@@ -106,9 +106,9 @@ Splits are strictly temporal to prevent look-ahead leakage — for any transacti
 
 ## What's not included
 
-- **Scraping/collection scripts.** Data collection was done via ad-hoc eBay and PSA API automation rather than a reusable pipeline, so there's no `data_pipeline/` module here — it would need to be built fresh rather than extracted.
-- **Vision model checkpoints.** The Stage 1/Stage 2 CNN weights aren't in this repo; retrain via `01_vision_module_intrinsic_condition_encoder.ipynb`, or reach out (contact below) if you need the trained weights directly.
-- **`models/market/price_predictor.pkl`** is intentionally excluded — an auxiliary artifact that isn't part of the core pipeline (the two models that matter, XGBoost and the LSTM, are both included and validated).
+- **Scraping/collection scripts:** Data collection was done via ad-hoc eBay and PSA API automation rather than a reusable pipeline, so there's no `data_pipeline/` module here. It would need to be built fresh rather than extracted.
+- **Vision model checkpoints:** The Stage 1/Stage 2 CNN weights aren't in this repo. Retrain via `01_vision_module_intrinsic_condition_encoder.ipynb`, or reach out (contact below) if you need the trained weights directly.
+- **`models/market/price_predictor.pkl`** is intentionally excluded. It is an auxiliary artifact that isn't part of the core pipeline (the two models that matter, XGBoost and the LSTM, are both included and validated).
 
 ## Tech stack
 
