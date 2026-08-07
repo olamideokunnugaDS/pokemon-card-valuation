@@ -44,9 +44,9 @@ Identity classification is close to solved. Condition is harder (PSA 8 vs. 9 vs.
 
 **Known failure modes**, documented directly rather than smoothed over:
 
-- *PSA 9 bias:* the classifier over-predicts the majority grade (PSA 9) when uncertain, at the cost of PSA 8 and PSA 10 recall.
-- *Embedding collapse:* 6 of 3,812 samples (0.16%) produce a zero condition-embedding vector, likely from ReLU killing all activations on edge-case images. Negligible at this scale, but worth flagging for anyone extending the dataset.
-- *Grade separability:* global clustering by grade (silhouette score) is negative. The model has not learned a globally separable condition space, only a locally consistent ordinal one. Likely ceiling of what's extractable from frozen ImageNet features at 224×224 without fine-grained, higher-resolution attention.
+- *PSA 9 bias:* the classifier over-predicts the majority grade (PSA 9) when uncertain, at the cost of PSA 8 and PSA 10 recall
+- *Embedding collapse:* 6 of 3,812 samples (0.16%) produce a zero condition-embedding vector, likely from ReLU killing all activations on edge-case images. Negligible at this scale, but worth flagging for anyone extending the dataset
+- *Grade separability:* global clustering by grade (silhouette score) is negative. The model has not learned a globally separable condition space, only a locally consistent ordinal one. Likely ceiling of what's extractable from frozen ImageNet features at 224×224 without fine-grained, higher-resolution attention
 
 Grad-CAM attribution confirms the model attends to the card body (not the PSA label sticker, which would be an obvious shortcut). Visualizations are produced by `src/vision_module/interpretability.py`.
 
