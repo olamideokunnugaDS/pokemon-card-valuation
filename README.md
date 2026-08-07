@@ -33,7 +33,7 @@ The XGBoost model looks strong in training and then falls apart on test data, a 
 - **Best variant:** identity + condition + market-LSTM embeddings fused through a small MLP head → **R²(log) = +0.340 ± 0.062** on test, the best of all 16 variants.
 - **Decomposition beats monolithic modeling:** the best fusion variant beats a single XGBoost model trained on all raw features by **+0.453 R²(log)** (95% CI [+0.351, +0.562]). Keeping condition and market representations separate until late fusion is cleaner, and measurably more accurate.
 - **Fusion beats the best single modality:** it beats the market-LSTM running alone by **+0.116 R²(log)** (95% CI [+0.032, +0.177]).
-- **More modalities isn't automatically better:** adding the XGBoost market embedding into the best 3-input variant hurts it by −0.147 R²(log) (95% CI [−0.236, −0.073]). XGBoost's overfitting propagates straight into the fusion head. Picking the right inputs mattered more than maximizing input count.
+- **More modalities isn't automatically better:** adding the XGBoost market embedding into the best 3-input variant hurts it by -0.147 R²(log) (95% CI [-0.236, -0.073]). XGBoost's overfitting propagates straight into the fusion head. Picking the right inputs mattered more than maximizing input count.
 
 Full per-variant numbers are in [`results/fusion_master_comparison.csv`](results/fusion_master_comparison.csv), every pairwise significance test is in [`results/fusion_bootstrap_results.json`](results/fusion_bootstrap_results.json). A fuller write-up, including subgroup breakdowns (temporal segments, PSA grade, cold-start listings) and failure-mode analysis, is in [`docs/technical_report.md`](docs/technical_report.md).
 
