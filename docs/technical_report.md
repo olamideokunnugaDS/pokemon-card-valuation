@@ -22,7 +22,7 @@ This produces uneven split sizes (transaction volume grew over time), but preser
 
 ## 3. Vision module: intrinsic condition encoding
 
-**Architecture:** A frozen ImageNet-pretrained ResNet50 backbone feeds two sequential encoder heads.
+**Architecture:** A frozen ImageNet-pretrained ResNet50 backbone feeds two sequential encoder heads
 
 - **Stage 1 (identity):** trained to classify which of the 7 card species a slab image shows. Trained first, then frozen.
 - **Stage 2 (condition):** trained to classify PSA grade (8/9/10), with an orthogonality penalty added to the loss that pushes its embeddings' cosine similarity toward the (frozen) Stage 1 embeddings down to zero.
