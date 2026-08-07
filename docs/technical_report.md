@@ -122,14 +122,14 @@ Two comparisons were directional but not statistically conclusive at the 95% lev
 
 ## 6. Limitations
 
-- **Cold-start dependence:** The LSTM's strength comes from conditioning on each card's own recent transaction history. For a card with little or no sales history, this signal is unavailable, and performance is expected to degrade toward the static-baseline range. This is a structural limitation of the sequence-model approach, not a training artifact.
-- **Small-data regime:** 3,812 transactions across 21 card-name × grade strata is a real constraint on how much can be claimed from any single comparison. Reported effect sizes and confidence intervals should be read as evidence from a controlled case study on this dataset, not as population-level claims about multimodal valuation generally.
-- **Single grading authority, single franchise:** Scoped deliberately to PSA-graded Pokémon cards to avoid confounding from cross-market demand dynamics or inter-authority grading variation. Generalizing to other card games, grading services, or collectible categories is untested.
-- **Vision condition ceiling:** The condition encoder's inability to globally separate grades in embedding space (Section 3) suggests frozen ImageNet features at 224×224 may be close to their practical ceiling for this task. Higher-resolution input or fine-grained attention are the likely next steps, not tested here.
-- **Computational cost:** Running vision + market + fusion end to end is heavier than a single tabular model, which matters in resource-constrained deployment settings.
+- **Cold-start dependence:** The LSTM's strength comes from conditioning on each card's own recent transaction history. For a card with little or no sales history, this signal is unavailable, and performance is expected to degrade toward the static-baseline range. This is a structural limitation of the sequence-model approach, not a training artifact
+- **Small-data regime:** 3,812 transactions across 21 card-name × grade strata is a real constraint on how much can be claimed from any single comparison. Reported effect sizes and confidence intervals should be read as evidence from a controlled case study on this dataset, not as population-level claims about multimodal valuation generally
+- **Single grading authority, single franchise:** Scoped deliberately to PSA-graded Pokémon cards to avoid confounding from cross-market demand dynamics or inter-authority grading variation. Generalizing to other card games, grading services, or collectible categories is untested
+- **Vision condition ceiling:** The condition encoder's inability to globally separate grades in embedding space (Section 3) suggests frozen ImageNet features at 224×224 may be close to their practical ceiling for this task. Higher-resolution input or fine-grained attention are the likely next steps, not tested here
+- **Computational cost:** Running vision + market + fusion end to end is heavier than a single tabular model, which matters in resource-constrained deployment settings
 
 ## 7. Reproducing this
 
-- Notebooks `01`–`03` in `notebooks/` reproduce every number in this report, in order, and are self-contained (Colab or local).
-- `src/` contains the same core logic extracted into a reusable library. See the README's "Notebooks and `src/`" section.
-- Requires **Python 3.12+**: `03_fusion_module.ipynb` contains nested f-string literals (PEP 701) that don't parse on earlier Python versions.
+- Notebooks `01`–`03` in `notebooks/` reproduce every number in this report, in order, and are self-contained (Colab or local)
+- `src/` contains the same core logic extracted into a reusable library. See the README's "Notebooks and `src/`" section
+- Requires **Python 3.12+**: `03_fusion_module.ipynb` contains nested f-string literals (PEP 701) that don't parse on earlier Python versions
