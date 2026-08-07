@@ -52,7 +52,7 @@ Grad-CAM attribution confirms the model attends to the card body (not the PSA la
 
 ## 4. Market module: extrinsic market-state encoding
 
-**Feature engineering.** All temporal features are computed with a strict look-back constraint — for a transaction at time *t*, only transactions with `date_sold < t` are visible. Three families of features:
+**Feature engineering:** All temporal features are computed with a strict look-back constraint, for a transaction at time *t*, only transactions with `date_sold < t` are visible. Three families of features:
 
 - **Rolling statistics:** mean, median, std, and count of prior sale prices within 7/14/30-day windows, per card+grade
 - **Momentum:** change in rolling average price between adjacent windows
@@ -67,20 +67,20 @@ Grad-CAM attribution confirms the model attends to the card body (not the PSA la
 | Hybrid XGBoost | 31 | $1,405 | $3,499 | 67.2% | **−0.134** | Overfit |
 | **LSTM (sequence)** | last 10 transactions | **$1,284** | **$3,311** | 112.6% | **+0.307** | Clean |
 
-The XGBoost model, despite access to the richest feature set, generalizes worst — strong training R² collapses to negative test R², the signature of overfitting to a market regime that later shifted. A feature-ablation check on the XGBoost model (removing drift-exposed features like `days_since_start`) didn't fix this: no XGBoost variant achieves positive test R²(log). The LSTM, which conditions on each card's own recent transaction sequence at inference time rather than a fixed static mapping, is the only model that holds up under drift — and by a wide margin. This is the strongest single empirical finding in the market module: **the choice of temporal representation matters more than feature richness.**
+The XGBoost model, despite access to the richest feature set, generalizes worst. Strong training R² collapses to negative test R², the signature of overfitting to a market regime that later shifted. A feature-ablation check on the XGBoost model (removing drift-exposed features like `days_since_start`) didn't fix this. No XGBoost variant achieves positive test R²(log). The LSTM, which conditions on each card's own recent transaction sequence at inference time rather than a fixed static mapping, is the only model that holds up under drift, and by a wide margin. This is the strongest single empirical finding in the market module: **the choice of temporal representation matters more than feature richness.**
 
-The LSTM's much higher MAPE (112.6% vs. XGBoost's 67.2%) alongside a much better R²(log) and MAE looks contradictory at first — it isn't. MAPE is dominated by a handful of low-priced cards where even a small dollar error is a huge percentage error; R²(log) and dollar-scale MAE/RMSE are the more trustworthy metrics here given the price distribution's skew.
+The LSTM's much higher MAPE (112.6% vs. XGBoost's 67.2%) alongside a much better R²(log) and MAE looks contradictory at first but it isn't. MAPE is dominated by a handful of low-priced cards where even a small dollar error is a huge percentage error. R²(log) and dollar-scale MAE/RMSE are the more trustworthy metrics here given the price distribution's skew.
 
 ## 5. Fusion module: combining condition and market state
 
-**Architecture.** A locked MLP head (`input_dim → 256 → 64 → 1`, ReLU, dropout 0.2, Huber loss) is shared across every fusion variant — only the input composition changes. This is deliberate: if the architecture were tuned per-variant, gains couldn't be cleanly attributed to *which inputs* were used versus *how the model was tuned*. Four embedding blocks, concatenated in a fixed order when used together:
+**Architecture:** A locked MLP head (`input_dim → 256 → 64 → 1`, ReLU, dropout 0.2, Huber loss) is shared across every fusion variant, only the input composition changes. This is deliberate: if the architecture were tuned per-variant, gains couldn't be cleanly attributed to *which inputs* were used versus *how the model was tuned*. Four embedding blocks, concatenated in a fixed order when used together:
 
 - **identity** (256-dim, from Stage 1 vision)
 - **condition** (256-dim, from Stage 2 vision)
 - **market-LSTM** (64-dim, hidden state from the LSTM sequence model)
 - **market-XGBoost** (64-dim, engineered feature block used by the XGBoost model)
 
-16 variants were trained — every single block alone, every pairwise and higher-order combination, a monolithic-XGBoost baseline on raw features (no fusion at all), and a sanity baseline (predict the training-set mean price). Every non-trivial variant was trained across 5 seeds; significance between variants was assessed with a paired double-bootstrap (1,000 resamples, independently resampling both rows and seeds).
+16 variants were trained. Every single block alone, every pairwise and higher-order combination, a monolithic-XGBoost baseline on raw features (no fusion at all), and a sanity baseline (predict the training-set mean price). Every non-trivial variant was trained across 5 seeds, significance between variants was assessed with a paired double-bootstrap (1,000 resamples, independently resampling both rows and seeds).
 
 **Full results, ranked by test R²(log):**
 
@@ -91,17 +91,17 @@ The LSTM's much higher MAPE (112.6% vs. XGBoost's 67.2%) alongside a much better
 | 3 | V14 | cond + mkt-LSTM | 320 | +0.243 ± 0.048 | $1,285 |
 | 4 | V5 | mkt-LSTM only | 64 | +0.236 ± 0.056 | $1,301 |
 | 5 | V13 | full (all four) | 640 | +0.190 ± 0.062 | $1,265 |
-| 6 | V16 | cond + mkt-LSTM + mkt-XGB | 384 | −0.060 ± 0.091 | $1,313 |
-| 7 | V2 | monolithic XGBoost (raw) | 31 | −0.105 ± 0.055 | $1,405 |
-| 8 | V12 | id + cond + mkt-XGB | 576 | −0.139 ± 0.064 | $1,383 |
-| 9 | V11 | id + mkt-XGB | 320 | −0.246 ± 0.088 | $1,411 |
-| 10 | V8 | mkt-LSTM + mkt-XGB | 128 | −0.384 ± 0.209 | $1,352 |
-| 11 | V6 | mkt-XGB only | 64 | −0.662 ± 0.285 | $1,460 |
-| 12 | V4 | cond only | 256 | −0.674 ± 0.058 | $1,500 |
-| 13 | V15 | cond + mkt-XGB | 320 | −0.689 ± 0.106 | $1,472 |
-| 14 | V7 | id + cond (vision full) | 512 | −0.735 ± 0.050 | $1,455 |
-| 15 | V3 | id only | 256 | −0.777 ± 0.039 | $1,471 |
-| 16 | V1 | sanity (predict mean) | — | −0.870 ± 0.000 | $1,537 |
+| 6 | V16 | cond + mkt-LSTM + mkt-XGB | 384 | -0.060 ± 0.091 | $1,313 |
+| 7 | V2 | monolithic XGBoost (raw) | 31 | -0.105 ± 0.055 | $1,405 |
+| 8 | V12 | id + cond + mkt-XGB | 576 | -0.139 ± 0.064 | $1,383 |
+| 9 | V11 | id + mkt-XGB | 320 | -0.246 ± 0.088 | $1,411 |
+| 10 | V8 | mkt-LSTM + mkt-XGB | 128 | -0.384 ± 0.209 | $1,352 |
+| 11 | V6 | mkt-XGB only | 64 | -0.662 ± 0.285 | $1,460 |
+| 12 | V4 | cond only | 256 | -0.674 ± 0.058 | $1,500 |
+| 13 | V15 | cond + mkt-XGB | 320 | -0.689 ± 0.106 | $1,472 |
+| 14 | V7 | id + cond (vision full) | 512 | -0.735 ± 0.050 | $1,455 |
+| 15 | V3 | id only | 256 | -0.777 ± 0.039 | $1,471 |
+| 16 | V1 | sanity (predict mean) | — | -0.870 ± 0.000 | $1,537 |
 
 Full precision numbers, plus train/val R²(log) and the train-val-test generalization gap for every variant, are in [`results/fusion_master_comparison.csv`](../results/fusion_master_comparison.csv).
 
@@ -109,27 +109,27 @@ Full precision numbers, plus train/val R²(log) and the train-val-test generaliz
 
 | Comparison | Gap (R²(log)) | 95% CI | Reading |
 |---|---|---|---|
-| V10 − V2 (best fusion vs. monolithic XGBoost) | +0.453 | [+0.351, +0.562] | Decomposing condition/market and fusing late beats one model on raw features |
-| V13 − V2 (full 4-way fusion vs. monolithic XGBoost) | +0.306 | [+0.207, +0.403] | Even the noisier full-fusion variant clears the monolithic baseline |
-| V10 − V5 (best fusion vs. best unimodal) | +0.116 | [+0.032, +0.177] | Fusion adds real value over the strongest single modality |
-| V9 − V11 (LSTM vs. XGBoost as fusion partner) | +0.551 | [+0.462, +0.650] | The choice of *which* market embedding to fuse matters enormously |
-| V13 − V10 (adding XGBoost embedding to the best variant) | **−0.147** | [−0.236, −0.073] | Adding a weaker, overfit modality actively hurts a strong variant |
-| V12 − V11 (condition lift, XGBoost-fusion variants) | +0.121 | [+0.043, +0.204] | Condition embedding helps even when paired with a weak market signal |
+| V10 - V2 (best fusion vs. monolithic XGBoost) | +0.453 | [+0.351, +0.562] | Decomposing condition/market and fusing late beats one model on raw features |
+| V13 - V2 (full 4-way fusion vs. monolithic XGBoost) | +0.306 | [+0.207, +0.403] | Even the noisier full-fusion variant clears the monolithic baseline |
+| V10 - V5 (best fusion vs. best unimodal) | +0.116 | [+0.032, +0.177] | Fusion adds real value over the strongest single modality |
+| V9 - V11 (LSTM vs. XGBoost as fusion partner) | +0.551 | [+0.462, +0.650] | The choice of which market embedding to fuse matters enormously |
+| V13 - V10 (adding XGBoost embedding to the best variant) | **-0.147** | [-0.236, -0.073] | Adding a weaker, overfit modality actively hurts a strong variant |
+| V12 - V11 (condition lift, XGBoost-fusion variants) | +0.121 | [+0.043, +0.204] | Condition embedding helps even when paired with a weak market signal |
 
-Two comparisons were directional but not statistically conclusive at the 95% level: V10 − V9 (condition's marginal lift over identity+LSTM alone, p=0.966 but CI marginally includes zero) and V14 − V9 (condition substituting for identity as the vision anchor, p=0.954, CI marginally includes zero). Both point the same direction as the supported results but with a smaller, noisier effect.
+Two comparisons were directional but not statistically conclusive at the 95% level: V10 - V9 (condition's marginal lift over identity+LSTM alone, p=0.966 but CI marginally includes zero) and V14 - V9 (condition substituting for identity as the vision anchor, p=0.954, CI marginally includes zero). Both point the same direction as the supported results but with a smaller, noisier effect.
 
-**The central finding:** decomposing intrinsic (condition) and extrinsic (market) representations and fusing them late beats collapsing everything into one model trained on raw features — clearly and by a wide margin. But fusion is not monotonically better with more inputs: the single worst decision in the entire lattice is adding the XGBoost market embedding to an already-strong 3-input variant, which drags performance down by 0.147 R²(log). XGBoost's test-set overfitting (Section 4) doesn't stay contained to XGBoost — it propagates into any fusion variant that includes it. The practical takeaway is that fusion architectures need input selection discipline, not just input-maximizing.
+**The central finding:** decomposing intrinsic (condition) and extrinsic (market) representations and fusing them late beats collapsing everything into one model trained on raw features, clearly and by a wide margin. But fusion is not monotonically better with more inputs. The single worst decision in the entire lattice is adding the XGBoost market embedding to an already-strong 3-input variant, which drags performance down by 0.147 R²(log). XGBoost's test-set overfitting (Section 4) doesn't stay contained to XGBoost, it propagates into any fusion variant that includes it. The practical takeaway is that fusion architectures need input selection discipline, not just input-maximizing.
 
 ## 6. Limitations
 
-- **Cold-start dependence.** The LSTM's strength comes from conditioning on each card's own recent transaction history. For a card with little or no sales history, this signal is unavailable, and performance is expected to degrade toward the static-baseline range. This is a structural limitation of the sequence-model approach, not a training artifact.
-- **Small-data regime.** 3,812 transactions across 21 card-name × grade strata is a real constraint on how much can be claimed from any single comparison — reported effect sizes and confidence intervals should be read as evidence from a controlled case study on this dataset, not as population-level claims about multimodal valuation generally.
-- **Single grading authority, single franchise.** Scoped deliberately to PSA-graded Pokémon cards to avoid confounding from cross-market demand dynamics or inter-authority grading variation. Generalizing to other card games, grading services, or collectible categories is untested.
-- **Vision condition ceiling.** The condition encoder's inability to globally separate grades in embedding space (Section 3) suggests frozen ImageNet features at 224×224 may be close to their practical ceiling for this task. Higher-resolution input or fine-grained attention are the likely next steps, not tested here.
-- **Computational cost.** Running vision + market + fusion end to end is heavier than a single tabular model, which matters in resource-constrained deployment settings.
+- **Cold-start dependence:** The LSTM's strength comes from conditioning on each card's own recent transaction history. For a card with little or no sales history, this signal is unavailable, and performance is expected to degrade toward the static-baseline range. This is a structural limitation of the sequence-model approach, not a training artifact.
+- **Small-data regime:** 3,812 transactions across 21 card-name × grade strata is a real constraint on how much can be claimed from any single comparison. Reported effect sizes and confidence intervals should be read as evidence from a controlled case study on this dataset, not as population-level claims about multimodal valuation generally.
+- **Single grading authority, single franchise:** Scoped deliberately to PSA-graded Pokémon cards to avoid confounding from cross-market demand dynamics or inter-authority grading variation. Generalizing to other card games, grading services, or collectible categories is untested.
+- **Vision condition ceiling:** The condition encoder's inability to globally separate grades in embedding space (Section 3) suggests frozen ImageNet features at 224×224 may be close to their practical ceiling for this task. Higher-resolution input or fine-grained attention are the likely next steps, not tested here.
+- **Computational cost:** Running vision + market + fusion end to end is heavier than a single tabular model, which matters in resource-constrained deployment settings.
 
 ## 7. Reproducing this
 
 - Notebooks `01`–`03` in `notebooks/` reproduce every number in this report, in order, and are self-contained (Colab or local).
-- `src/` contains the same core logic extracted into a reusable library — see the README's "Why both notebooks and `src/`" section.
+- `src/` contains the same core logic extracted into a reusable library. See the README's "Notebooks and `src/`" section.
 - Requires **Python 3.12+**: `03_fusion_module.ipynb` contains nested f-string literals (PEP 701) that don't parse on earlier Python versions.
