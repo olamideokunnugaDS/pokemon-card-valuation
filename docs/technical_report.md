@@ -33,8 +33,8 @@ The point of the two-stage split is to stop the condition encoder from taking a 
 
 | Stage | Task | Accuracy | Baseline | Lift | Notes |
 |---|---|---|---|---|---|
-| 1 — Identity | 7-way species classification | 91.3% | 21.3% (majority class) | +69.9pp | macro F1 = 0.91 |
-| 2 — Condition | 3-way grade classification | 49.0% | 40.2% (majority class) | +8.8pp | orthogonality \|cos_sim\| ≈ 0.000004 |
+| 1. Identity | 7-way species classification | 91.3% | 21.3% (majority class) | +69.9pp | macro F1 = 0.91 |
+| 2. Condition | 3-way grade classification | 49.0% | 40.2% (majority class) | +8.8pp | orthogonality \|cos_sim\| ≈ 0.000004 |
 
 Identity classification is close to solved. Condition is harder (PSA 8 vs. 9 vs. 10 differences are visually subtle even to trained human graders) but the encoder captures real ordinal structure rather than noise:
 
