@@ -21,9 +21,9 @@ The identity encoder is strong and clean (macro F1 = 0.91). Condition is the har
 
 | Model | MAE | RMSE | MAPE | R²(log) |
 |---|---|---|---|---|
-| Static-only (3 features) | $1,421 | $3,483 | 67.6% | −0.256 |
+| Static-only (3 features) | $1,421 | $3,483 | 67.6% | -0.256 |
 | Static + calendar (6 features) | $1,361 | $3,463 | 65.4% | +0.108 |
-| Hybrid XGBoost (31 features) | $1,405 | $3,499 | 67.2% | −0.134 |
+| Hybrid XGBoost (31 features) | $1,405 | $3,499 | 67.2% | -0.134 |
 | **LSTM (transaction-history sequence)** | **$1,284** | **$3,311** | 112.6% | **+0.307** |
 
 The XGBoost model looks strong in training and then falls apart on test data, a classic overfitting to a market state that later drifted. The LSTM, which conditions on each card's own recent transaction history rather than memorizing static feature-price mappings, is the only model that holds up out of sample.
