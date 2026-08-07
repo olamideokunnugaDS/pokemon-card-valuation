@@ -15,7 +15,7 @@ Trained and evaluated on 3,812 real auction transactions (Jan 2021-Apr 2026) acr
 | 1 - Identity | Which of 7 cards is this? | 91.3% | 21.3% | +69.9pp |
 | 2 - Condition | PSA grade (8/9/10)? | 49.0% | 40.2% | +8.8pp |
 
-The identity encoder is strong and clean (macro F1 = 0.91). Condition is the harder problem. PSA 8-10 differences are visually subtle, but the model captures real ordinal structure: 93.8% of predictions land within one adjacent grade, mean absolute error is 0.54 grade-levels, and the orthogonality constraint drives identity/condition cosine similarity to ~0.000004, i.e. near-complete disentanglement.
+The identity encoder is strong and clean (macro F1 = 0.91). Condition is the harder problem. PSA 8-10 differences are visually subtle, but the model captures real ordinal structure. 93.8% of predictions land within one adjacent grade, mean absolute error is 0.54 grade-levels, and the orthogonality constraint drives identity/condition cosine similarity to ~0.000004, i.e. near-complete disentanglement.
 
 **Market state:** Four approaches were compared on identical held-out test data (n=1,050, spanning a period of significant price drift):
 
