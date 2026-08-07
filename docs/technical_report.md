@@ -1,16 +1,16 @@
 # Technical Report: Multimodal Pokémon Card Valuation
 
-This is the full write-up behind the headline numbers in the README: methodology, complete results, and an honest account of what didn't work. It's written for an engineering audience — no institutional framing, no formal research-question apparatus, just what was built, what was tested, and what the data actually showed.
+This is the full write-up behind the headline numbers in the README including methodology, complete results, and an honest account of what didn't work. It's written for an engineering audience with no institutional framing, no formal research-question apparatus, just what was built, what was tested, and what the data actually showed.
 
 ## 1. Problem
 
-Estimate the resale price of a PSA-graded Pokémon card from two inputs: a photo of the graded slab, and the market's recent transaction history for that card. The central design bet is that these two signals — physical condition and market state — should be encoded independently and fused late, rather than thrown into one model as a flat feature vector. This report tests that bet against the alternative directly.
+Estimate the resale price of a PSA-graded Pokémon card from two inputs: a photo of the graded slab, and the market's recent transaction history for that card. The central design bet is that these two signals (physical condition and market state) should be encoded independently and fused late, rather than thrown into one model as a flat feature vector. This report tests that bet against the alternative directly.
 
 ## 2. Data
 
-3,812 auction transactions across 7 Pokémon card species, PSA grades 8–10, scraped from eBay sold listings and cross-referenced against PSA's public certification API to confirm grade and authenticity. Transactions span January 2021 to April 2026 — a window that includes substantial, real price drift in the collectibles market, which turns out to matter a great deal for which models generalize.
+3,812 auction transactions across 7 Pokémon card species, PSA grades 8-10, scraped from eBay sold listings and cross-referenced against PSA's public certification API to confirm grade and authenticity. Transactions span January 2021 to April 2026, a window that includes substantial, real price drift in the collectibles market, which turns out to matter a great deal for which models generalize.
 
-Splits are strictly temporal and enforced programmatically: for a transaction at time *t*, a model only ever sees information from transactions strictly before *t*. No card appears in both a training and test partition for the vision module. Outliers were floored at $1 and capped at $50,000 (3 observations removed). After restricting to grades 8–10 and excluding entries with expired image URLs, the final dataset has 3,812 rows.
+Splits are strictly temporal and enforced programmatically. For a transaction at time *t*, a model only ever sees information from transactions strictly before *t*. No card appears in both a training and test partition for the vision module. Outliers were floored at $1 and capped at $50,000 (3 observations removed). After restricting to grades 8–10 and excluding entries with expired image URLs, the final dataset has 3,812 rows from an initial 5,000.
 
 | Split | Rows | Ends |
 |---|---|---|
@@ -18,27 +18,27 @@ Splits are strictly temporal and enforced programmatically: for a transaction at
 | Val | 592 | 2 Oct 2025 |
 | Test | 1,050 | 13 Apr 2026 |
 
-This produces uneven split sizes (transaction volume grew over time), but preserves chronological integrity — the alternative, a random split, would leak future market information backward and overstate every model's real-world performance.
+This produces uneven split sizes (transaction volume grew over time), but preserves chronological integrity. The alternative, a random split, would leak future market information backward and overstate every model's real-world performance.
 
 ## 3. Vision module: intrinsic condition encoding
 
-**Architecture.** A frozen ImageNet-pretrained ResNet50 backbone feeds two sequential encoder heads:
+**Architecture:** A frozen ImageNet-pretrained ResNet50 backbone feeds two sequential encoder heads:
 
 - **Stage 1 (identity):** trained to classify which of the 7 card species a slab image shows. Trained first, then frozen.
 - **Stage 2 (condition):** trained to classify PSA grade (8/9/10), with an orthogonality penalty added to the loss that pushes its embeddings' cosine similarity toward the (frozen) Stage 1 embeddings down to zero.
 
-The point of the two-stage split is to stop the condition encoder from taking a shortcut — learning to recognize *which card it is* as a proxy for grade, rather than actually learning what wear and surface quality look like. A single-stage version of this model (no orthogonality constraint) was tested earlier and reached 52.1% grade accuracy, several points higher than the disentangled version below — but that version was gamed by exactly the identity-shortcut it wasn't supposed to be using.
+The point of the two-stage split is to stop the condition encoder from taking a shortcut-learning to recognize *which card it is* as a proxy for grade, rather than actually learning what wear and surface quality look like. A single-stage version of this model (no orthogonality constraint) was tested earlier and reached 52.1% grade accuracy, several points higher than the disentangled version below, but that version was gamed by exactly the identity-shortcut it wasn't supposed to be using.
 
-**Results.**
+**Results:**
 
 | Stage | Task | Accuracy | Baseline | Lift | Notes |
 |---|---|---|---|---|---|
 | 1 — Identity | 7-way species classification | 91.3% | 21.3% (majority class) | +69.9pp | macro F1 = 0.91 |
 | 2 — Condition | 3-way grade classification | 49.0% | 40.2% (majority class) | +8.8pp | orthogonality \|cos_sim\| ≈ 0.000004 |
 
-Identity classification is close to solved. Condition is harder — PSA 8 vs. 9 vs. 10 differences are visually subtle even to trained human graders — but the encoder captures real ordinal structure rather than noise:
+Identity classification is close to solved. Condition is harder (PSA 8 vs. 9 vs. 10 differences are visually subtle even to trained human graders) but the encoder captures real ordinal structure rather than noise:
 
-- 93.8% of predictions fall within one adjacent grade (i.e. off-by-one-grade errors dominate; the model rarely confuses PSA 8 for PSA 10)
+- 93.8% of predictions fall within one adjacent grade (i.e. off-by-one-grade errors dominate, the model rarely confuses PSA 8 for PSA 10)
 - Mean absolute error: 0.542 grade-levels
 - Global clustering by grade is weak (the condition embedding space doesn't cleanly separate into three grade clusters), but local, card-relative ordinal structure is present
 
@@ -46,9 +46,9 @@ Identity classification is close to solved. Condition is harder — PSA 8 vs. 9 
 
 - *PSA 9 bias:* the classifier over-predicts the majority grade (PSA 9) when uncertain, at the cost of PSA 8 and PSA 10 recall.
 - *Embedding collapse:* 6 of 3,812 samples (0.16%) produce a zero condition-embedding vector, likely from ReLU killing all activations on edge-case images. Negligible at this scale, but worth flagging for anyone extending the dataset.
-- *Grade separability:* global clustering by grade (silhouette score) is negative — the model has not learned a globally separable condition space, only a locally consistent ordinal one. Likely ceiling of what's extractable from frozen ImageNet features at 224×224 without fine-grained, higher-resolution attention.
+- *Grade separability:* global clustering by grade (silhouette score) is negative. The model has not learned a globally separable condition space, only a locally consistent ordinal one. Likely ceiling of what's extractable from frozen ImageNet features at 224×224 without fine-grained, higher-resolution attention.
 
-Grad-CAM attribution confirms the model attends to the card body (not the PSA label sticker, which would be an obvious shortcut) — visualizations are produced by `src/vision_module/interpretability.py`.
+Grad-CAM attribution confirms the model attends to the card body (not the PSA label sticker, which would be an obvious shortcut). Visualizations are produced by `src/vision_module/interpretability.py`.
 
 ## 4. Market module: extrinsic market-state encoding
 
