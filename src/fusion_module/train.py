@@ -118,7 +118,7 @@ def train_fusion_mlp(
     """Train the shared-architecture MLP for one (variant, seed) pair.
 
     This is the single training function used across every MLP variant in
-    the lattice (identity-only through full 4-way fusion) — only `variant`
+    the lattice (identity-only through full 4-way fusion). Only `variant`
     (which embedding blocks get concatenated, and therefore the resulting
     input dimension) changes between calls.
 
