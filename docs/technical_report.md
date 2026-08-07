@@ -62,9 +62,9 @@ Grad-CAM attribution confirms the model attends to the card body (not the PSA la
 
 | Model | Features | MAE | RMSE | MAPE | R²(log) | Stability |
 |---|---|---|---|---|---|---|
-| Static-only | 3 | $1,421 | $3,483 | 67.6% | −0.256 | — |
+| Static-only | 3 | $1,421 | $3,483 | 67.6% | -0.256 | — |
 | Static + calendar | 6 | $1,361 | $3,463 | 65.4% | +0.108 | — |
-| Hybrid XGBoost | 31 | $1,405 | $3,499 | 67.2% | **−0.134** | Overfit |
+| Hybrid XGBoost | 31 | $1,405 | $3,499 | 67.2% | **-0.134** | Overfit |
 | **LSTM (sequence)** | last 10 transactions | **$1,284** | **$3,311** | 112.6% | **+0.307** | Clean |
 
 The XGBoost model, despite access to the richest feature set, generalizes worst. Strong training R² collapses to negative test R², the signature of overfitting to a market regime that later shifted. A feature-ablation check on the XGBoost model (removing drift-exposed features like `days_since_start`) didn't fix this. No XGBoost variant achieves positive test R²(log). The LSTM, which conditions on each card's own recent transaction sequence at inference time rather than a fixed static mapping, is the only model that holds up under drift, and by a wide margin. This is the strongest single empirical finding in the market module: **the choice of temporal representation matters more than feature richness.**
