@@ -24,8 +24,8 @@ This produces uneven split sizes (transaction volume grew over time), but preser
 
 **Architecture:** A frozen ImageNet-pretrained ResNet50 backbone feeds two sequential encoder heads
 
-- **Stage 1 (identity):** trained to classify which of the 7 card species a slab image shows. Trained first, then frozen.
-- **Stage 2 (condition):** trained to classify PSA grade (8/9/10), with an orthogonality penalty added to the loss that pushes its embeddings' cosine similarity toward the (frozen) Stage 1 embeddings down to zero.
+- **Stage 1 (identity):** trained to classify which of the 7 card species a slab image shows. Trained first, then frozen
+- **Stage 2 (condition):** trained to classify PSA grade (8/9/10), with an orthogonality penalty added to the loss that pushes its embeddings' cosine similarity toward the (frozen) Stage 1 embeddings down to zero
 
 The point of the two-stage split is to stop the condition encoder from taking a shortcut-learning to recognize *which card it is* as a proxy for grade, rather than actually learning what wear and surface quality look like. A single-stage version of this model (no orthogonality constraint) was tested earlier and reached 52.1% grade accuracy, several points higher than the disentangled version below, but that version was gamed by exactly the identity-shortcut it wasn't supposed to be using.
 
