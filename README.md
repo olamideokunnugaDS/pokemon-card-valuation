@@ -4,7 +4,7 @@ A multimodal machine learning system for valuing PSA-graded Pokémon cards, buil
 
 Most valuation approaches either grade a card visually and ignore the market, or model price movement and ignore what the card actually looks like. This project builds both representations independently with a CNN encoder for physical condition and a temporal encoder for market state, then tests, empirically, whether fusing them beats either one alone, and whether keeping them separate beats mashing all features into one model.
 
-Trained and evaluated on 3,812 real auction transactions (Jan 2021–Apr 2026) across 7 Pokémon card species, PSA grades 8–10, under a strict temporal split that forces every model to generalize forward in time through genuine market drift.
+Trained and evaluated on 3,812 real auction transactions (Jan 2021-Apr 2026) across 7 Pokémon card species, PSA grades 8-10, under a strict temporal split that forces every model to generalize forward in time through genuine market drift.
 
 ## Headline results
 
